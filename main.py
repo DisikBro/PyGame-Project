@@ -5,7 +5,7 @@ size = width, height = 500, 500
 screen = pygame.display.set_mode(size)
 
 running = True
-FPS = 100
+FPS = 60
 clock = pygame.time.Clock()
 while running:
     for event in pygame.event.get():
