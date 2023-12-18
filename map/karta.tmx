@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.0" orientation="orthogonal" renderorder="right-down" width="60" height="34" tilewidth="32" tileheight="32" infinite="0" nextlayerid="7" nextobjectid="1">
+ <tileset firstgid="1" source="terrain_tiles_v2.tsx"/>
+ <tileset firstgid="161" source="assets_spritesheet_v2_free.tsx"/>
+ <tileset firstgid="305" source="fence_tiles.tsx"/>
+ <tileset firstgid="321" source="RockPack-FadedBrown.tsx"/>
+ <layer id="1" name="Слой тайлов 1" width="60" height="34">
+  <data encoding="base64" compression="zlib">
+   eJzt1jEOgzAMBdCchb10QWoYWw5Ez8NpyQBLZQhObccKf3gLEkp+bAeWEMICAAAA4MAj6Z16KuR9JYNTo1HeuKGeW+Tc19HK+5vjaq5I4L5zdqaa9c3tNwZ6zy3085Vek+hz6gxrza/mXNau776PTihTyX1HvVervqWzWnKfeZvff+t+p7zcM7HIm/sWH80lVT9OTVu8n7k9oP2/Yd3HuTUt55fTh5JnoJ33nXycmhTyzka+haTzAgAAgJwVUBvIYg==
+  </data>
+ </layer>
+ <layer id="2" name="Слой тайлов 2" width="60" height="34">
+  <data encoding="base64" compression="zlib">
+   eJzt1rkNgDAQRNF1TzQCGWQcCUdTJrdzqI7JcAMWaPWf9DWpN7MZAADwbAxmk2pVp2a1hK9fVc+q2zbVq0Ht6nB8LwAAAOpp9I+M2tPe9S6pXKx3l7qLBQAAAP7uAdufDO4=
+  </data>
+ </layer>
+ <layer id="5" name="Слой тайлов 4" width="60" height="34">
+  <data encoding="base64" compression="zlib">
+   eJztz7EBABAQBMH7Gsnovw4yNWAm2XgTAPhPq6TX6evGfpx1CgAAAAAA3GcBg8UCxQ==
+  </data>
+ </layer>
+ <layer id="4" name="Слой тайлов 3" width="60" height="34">
+  <data encoding="base64" compression="zlib">
+   eJzt1zkOgDAMRFHnThQUXIKlYbkc9NDD6bAELogiRAWS+U+axmkySuOIAABwKINIFb6+xXta7dr9pK+9ba1pHHfOz272tr1mCNczT4qbTndnAAAAeCZL7FSpmRe2M4+aKZp5ZN1mzRLNPLJuq2aLZh6l/kT8kwAAgAc7c0gLTg==
+  </data>
+ </layer>
+ <layer id="6" name="Слой тайлов 5" width="60" height="34">
+  <data encoding="base64" compression="zlib">
+   eJztz8ERABAQBMG9EPmRfyBEQRXdEcwkAPCnVkmv2xXnjP06P/oFAAAAAIDXLA67AVs=
+  </data>
+ </layer>
+</map>
