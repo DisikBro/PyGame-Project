@@ -58,7 +58,7 @@ class AnimatedSprite(pygame.sprite.Sprite):
 
 all_sprites = pygame.sprite.Group()
 # player = Player(all_sprites)
-player = AnimatedSprite(load_image("img_1.png"), 8, 1, 50, 50)
+player = AnimatedSprite(load_image("hero.png"), 8, 1, 50, 50)
 running = True
 FPS = 60
 clock = pygame.time.Clock()
