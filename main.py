@@ -37,7 +37,7 @@ def start_screen():
                     event.type == pygame.MOUSEBUTTONDOWN:
                 pygame.display.flip()
                 count += 1
-                fon = pygame.transform.scale(load_image('Start_screen.png'), (width, height))
+                fon = pygame.transform.scale(load_image('Start_scr.png'), (width, height))
                 screen.blit(fon, (0, 0))
             elif count == 2:
                 return  # начинаем игру
