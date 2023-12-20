@@ -4,7 +4,7 @@ import sys
 import pygame
 
 pygame.init()
-size = width, height = 500, 500
+size = width, height = 1920, 1080
 screen = pygame.display.set_mode(size)
 
 
@@ -24,7 +24,33 @@ def load_image(name, colorkey=None):
     return image
 
 
-class AnimatedSprite(pygame.sprite.Sprite):
+def start_screen():
+    count = 0
+    fon = pygame.transform.scale(load_image('developers.png'), (width, height))
+    screen.blit(fon, (0, 0))
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.KEYDOWN or \
+                    event.type == pygame.MOUSEBUTTONDOWN:
+                pygame.display.flip()
+                count += 1
+                fon = pygame.transform.scale(load_image('Start_screen.png'), (width, height))
+                screen.blit(fon, (0, 0))
+            elif count == 2:
+                return  # начинаем игру
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
+def terminate():
+    pygame.quit()
+    sys.exit()
+
+
+class Hero(pygame.sprite.Sprite):
     def __init__(self, sheet, columns, rows, x, y):
         super().__init__(all_sprites)
         self.frames = []
@@ -56,9 +82,20 @@ class AnimatedSprite(pygame.sprite.Sprite):
             self.rect.y += 5
 
 
+def mainloop():
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            all_sprites.update()
+        screen.fill('black')
+        all_sprites.draw(screen)
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
 all_sprites = pygame.sprite.Group()
-# player = Player(all_sprites)
-player = AnimatedSprite(load_image("hero.png"), 8, 1, 50, 50)
+player = Hero(load_image("hero.png"), 8, 1, 50, 50)
 running = True
 FPS = 60
 clock = pygame.time.Clock()
@@ -66,8 +103,9 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-    all_sprites.update()
     screen.fill('black')
     all_sprites.draw(screen)
     pygame.display.flip()
     clock.tick(FPS)
+    start_screen()
+    mainloop()
