@@ -1,11 +1,30 @@
 import os
 import sys
+import pygame_gui
 
 import pygame
 
 pygame.init()
 size = width, height = 1920, 1080
 screen = pygame.display.set_mode(size)
+manager1 = pygame_gui.UIManager((1920, 1080))
+registration_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((320, 230), (170, 50)),
+                                                   text='Создать аккаунт',
+                                                   manager=manager1)
+entrance_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((320, 300), (170, 50)),
+                                               text='Войти',
+                                               manager=manager1)
+
+manager2 = pygame_gui.UIManager((1920, 1080))
+label = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((190, 230), (128, 30)), text='Введите никнейм:',
+                                    manager=manager2)
+login_entry = pygame_gui.elements.UITextEntryLine(pygame.Rect((320, 230), (170, 30)), manager2)
+accept_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((190, 265), (298, 30)),
+                                             text='Подтвердить',
+                                             manager=manager2)
+back_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((190, 140), (100, 40)),
+                                           text='Назад',
+                                           manager=manager2)
 
 
 def load_image(name, colorkey=None):
@@ -97,15 +116,28 @@ def mainloop():
 all_sprites = pygame.sprite.Group()
 player = Hero(load_image("hero.png"), 8, 1, 50, 50)
 running = True
+manager = manager1
 FPS = 60
 clock = pygame.time.Clock()
 while running:
+    time_delta = clock.tick(60) / 1000.0
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+
+        if event.type == pygame_gui.UI_BUTTON_PRESSED:
+            if event.ui_element == registration_button:
+                manager = manager2
+            if event.ui_element == entrance_button:
+                manager = manager2
+            if event.ui_element == back_button:
+                manager = manager1
+            if event.ui_element == accept_button:
+                start_screen()
+                mainloop()
+        manager.process_events(event)
+    manager.update(time_delta)
     screen.fill('black')
-    all_sprites.draw(screen)
+    manager.draw_ui(screen)
     pygame.display.flip()
     clock.tick(FPS)
-    start_screen()
-    mainloop()
