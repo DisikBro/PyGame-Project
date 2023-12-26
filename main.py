@@ -55,7 +55,7 @@ def generate_level(level):
         for x in range(len(level[y])):
             if level[y][x] == '33':
                 Tile('33.jpg', x, y)
-                new_player = Hero(x, y)
+                new_player = Hero((x - 1.6) * tile_width, (y - 3.2) * tile_height)
             else:
                 Tile(f'{level[y][x]}.jpg', x, y)
     return new_player, x, y
@@ -68,7 +68,7 @@ def terminate():
 
 class Hero(pygame.sprite.Sprite):
     def __init__(self, x, y):
-        super().__init__(all_sprites)
+        super().__init__(player_group, all_sprites)
         self.frames = []
         self.cut_sheet(load_image("hero.png"), 8, 1)
         self.cur_frame = 0
@@ -111,9 +111,10 @@ def mainloop():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
-            all_sprites.update()
+        all_sprites.update()
         screen.fill('black')
-        all_sprites.draw(screen)
+        tiles_group.draw(screen)
+        player_group.draw(screen)
         pygame.display.flip()
         clock.tick(FPS)
 
