@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.0" orientation="orthogonal" renderorder="right-down" width="60" height="34" tilewidth="32" tileheight="32" infinite="0" nextlayerid="7" nextobjectid="1">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="60" height="34" tilewidth="32" tileheight="32" infinite="0" nextlayerid="7" nextobjectid="1">
  <tileset firstgid="1" source="terrain_tiles_v2.tsx"/>
  <tileset firstgid="161" source="assets_spritesheet_v2_free.tsx"/>
  <tileset firstgid="305" source="fence_tiles.tsx"/>
@@ -16,7 +16,7 @@
  </layer>
  <layer id="5" name="Слой тайлов 4" width="60" height="34">
   <data encoding="base64" compression="zlib">
-   eJztz7EBABAQBMH7Gsnovw4yNWAm2XgTAPhPq6TX6evGfpx1CgAAAAAA3GcBg8UCxQ==
+   eJztz7ENACAMA8FkRuigZP8ZoIMZyJ1kuf4IAKinZUTP+78bp3E+q2YVbAYAAAAA4D8bqOMDKw==
   </data>
  </layer>
  <layer id="4" name="Слой тайлов 3" width="60" height="34">
