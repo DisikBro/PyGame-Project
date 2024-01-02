@@ -105,6 +105,13 @@ class Tile(pygame.sprite.Sprite):
             tile_width * pos_x, tile_height * pos_y)
 
 
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__(crackling_group, all_sprites)
+        self.cur_frame = 0
+        self.image = pygame.image.load('crackling/idle.png')
+
+
 def mainloop():
     while True:
         for event in pygame.event.get():
@@ -176,6 +183,7 @@ if __name__ == '__main__':
     tiles_group5 = pygame.sprite.Group()
     list_of_groups = [tiles_group1, tiles_group2, tiles_group3, tiles_group4, tiles_group5]
     player_group = pygame.sprite.Group()
+    crackling_group = pygame.sprite.Group()
     tile_width = tile_height = 32
     player, level_x, level_y = generate_level(load_level('karta._Слой тайлов 1.csv'), tiles_group1)
     for i in list_of_groups[1:]:
