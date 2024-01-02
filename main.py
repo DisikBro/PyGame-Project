@@ -105,6 +105,20 @@ class Tile(pygame.sprite.Sprite):
             tile_width * pos_x, tile_height * pos_y)
 
 
+class Camera:
+    def __init__(self):
+        self.dx = 0
+        self.dy = 0
+
+    def apply(self, obj):
+        obj.rect.x += self.dx
+        obj.rect.y += self.dy
+
+    def update(self, target):
+        self.dx = -(target.rect.x + target.rect.w // 2 - width // 2)
+        self.dy = -(target.rect.y + target.rect.h // 2 - height // 2)
+
+
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__(crackling_group, all_sprites)
@@ -143,6 +157,9 @@ def mainloop():
             else:
                 player.run_right = True
             player.rect.y += 5
+        camera.update(player)
+        for sprite in all_sprites:
+            camera.apply(sprite)
         player.update()
         all_sprites.update()
         screen.fill('black')
@@ -155,9 +172,9 @@ def mainloop():
 
 if __name__ == '__main__':
     pygame.init()
-    size = width, height = 1920, 1080
+    size = width, height = 1064, 768
     screen = pygame.display.set_mode(size)
-    manager1 = pygame_gui.UIManager((1920, 1080))
+    manager1 = pygame_gui.UIManager((1064, 768))
     registration_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((320, 230), (170, 50)),
                                                        text='Создать аккаунт',
                                                        manager=manager1)
@@ -208,6 +225,7 @@ if __name__ == '__main__':
                     start_screen()
                     mainloop()
             manager.process_events(event)
+        camera = Camera()
         manager.update(time_delta)
         screen.fill('black')
         manager.draw_ui(screen)
