@@ -49,16 +49,19 @@ def load_level(filename):
     return level_map
 
 
-def generate_level(level):
+def generate_level(level, group,  flag=False):
     new_player, x, y = None, None, None
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == '33':
-                Tile('33.jpg', x, y)
+                Tile('33.jpg', x, y, group)
                 new_player = Hero((x - 1.6) * tile_width, (y - 3.2) * tile_height)
+            elif level[y][x] == '-1':
+                pass
             else:
-                Tile(f'{level[y][x]}.jpg', x, y)
-    return new_player, x, y
+                Tile(f'{level[y][x]}.jpg', x, y, group)
+    if not flag:
+        return new_player, x, y
 
 
 def terminate():
@@ -95,8 +98,8 @@ class Hero(pygame.sprite.Sprite):
 
 
 class Tile(pygame.sprite.Sprite):
-    def __init__(self, tile, pos_x, pos_y):
-        super().__init__(tiles_group, all_sprites)
+    def __init__(self, tile, pos_x, pos_y, group):
+        super().__init__(group, all_sprites)
         self.image = load_image(tile)
         self.rect = self.image.get_rect().move(
             tile_width * pos_x, tile_height * pos_y)
@@ -136,7 +139,8 @@ def mainloop():
         player.update()
         all_sprites.update()
         screen.fill('black')
-        tiles_group.draw(screen)
+        for i in list_of_groups:
+            i.draw(screen)
         player_group.draw(screen)
         pygame.display.flip()
         clock.tick(FPS)
@@ -165,11 +169,17 @@ if __name__ == '__main__':
                                                text='Назад',
                                                manager=manager2)
     all_sprites = pygame.sprite.Group()
-    tiles_group = pygame.sprite.Group()
+    tiles_group1 = pygame.sprite.Group()
+    tiles_group2 = pygame.sprite.Group()
+    tiles_group3 = pygame.sprite.Group()
+    tiles_group4 = pygame.sprite.Group()
+    tiles_group5 = pygame.sprite.Group()
+    list_of_groups = [tiles_group1, tiles_group2, tiles_group3, tiles_group4, tiles_group5]
     player_group = pygame.sprite.Group()
     tile_width = tile_height = 32
-    level = load_level('karta._Слой тайлов 1.csv')
-    player, level_x, level_y = generate_level(level)
+    player, level_x, level_y = generate_level(load_level('karta._Слой тайлов 1.csv'), tiles_group1)
+    for i in list_of_groups[1:]:
+        generate_level(load_level(f'karta._Слой тайлов {list_of_groups.index(i) + 1}.csv'), i, True)
     running = True
     manager = manager1
     FPS = 60
@@ -179,7 +189,6 @@ if __name__ == '__main__':
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-
             if event.type == pygame_gui.UI_BUTTON_PRESSED:
                 if event.ui_element == registration_button:
                     manager = manager2
