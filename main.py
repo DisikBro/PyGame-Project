@@ -69,33 +69,29 @@ def terminate():
 class Hero(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__(player_group, all_sprites)
-        self.frames = []
-        self.cut_sheet(load_image("hero.png"), 8, 1)
         self.cur_frame = 0
-        self.image = self.frames[self.cur_frame]
-        self.rect = self.rect.move(x, y)
-
-    def cut_sheet(self, sheet, columns, rows):
-        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
-                                sheet.get_height() // rows)
-        for j in range(rows):
-            for i in range(columns):
-                frame_location = (self.rect.w * i, self.rect.h * j)
-                self.frames.append(sheet.subsurface(pygame.Rect(
-                    frame_location, self.rect.size)))
+        self.image = pygame.image.load('stand/1.png')
+        self.rect = self.image.get_rect(center=(x, y))
+        self.run_right = False
+        self.run_left = False
+        self.frames = ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png']
 
     def update(self):
-        self.cur_frame = (self.cur_frame + 0.2) % len(self.frames)
-        self.image = self.frames[int(self.cur_frame)]
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_a]:
-            self.rect.x -= 5
-        if keys[pygame.K_d]:
-            self.rect.x += 5
-        if keys[pygame.K_w]:
-            self.rect.y -= 5
-        if keys[pygame.K_s]:
-            self.rect.y += 5
+        if self.run_right:
+            self.cur_frame += 0.15
+            if self.cur_frame > 7:
+                self.cur_frame = 0
+            self.image = pygame.image.load(f'run_right/{self.frames[int(self.cur_frame)]}')
+        elif self.run_left:
+            self.cur_frame += 0.15
+            if self.cur_frame > 7:
+                self.cur_frame = 0
+            self.image = pygame.image.load(f'run_left/{self.frames[int(self.cur_frame)]}')
+        else:
+            self.cur_frame += 0.15
+            if self.cur_frame > 7:
+                self.cur_frame = 0
+            self.image = pygame.image.load(f'stand/{self.frames[int(self.cur_frame)]}')
 
 
 class Tile(pygame.sprite.Sprite):
@@ -111,6 +107,33 @@ def mainloop():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
+            if event.type == pygame.KEYUP:
+                player.run_right = False
+                player.run_left = False
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_a]:
+            player.rect.x -= 5
+            player.run_left = True
+        if keys[pygame.K_d]:
+            player.rect.x += 5
+            player.run_right = True
+        if keys[pygame.K_w]:
+            if player.run_left:
+                pass
+            elif player.run_right:
+                pass
+            else:
+                player.run_right = True
+            player.rect.y -= 5
+        if keys[pygame.K_s]:
+            if player.run_left:
+                pass
+            elif player.run_right:
+                pass
+            else:
+                player.run_right = True
+            player.rect.y += 5
+        player.update()
         all_sprites.update()
         screen.fill('black')
         tiles_group.draw(screen)
