@@ -153,7 +153,6 @@ class Enemy(pygame.sprite.Sprite):
         self.speed = speed
 
 
-
 def moving():
     x, y = 0, 0
     keys = pygame.key.get_pressed()
@@ -179,7 +178,10 @@ def moving():
         else:
             player.run_right = True
         y = 5
-    if game_map.check_tile((player.rect.x + x) // tile_width, (player.rect.y + y) // tile_height):
+    if game_map.check_tile((player.rect.bottomleft[0] + x) // tile_width,
+                           (player.rect.bottomleft[1] + y) // tile_height) and \
+            game_map.check_tile((player.rect.bottomright[0] + x) // tile_width,
+                                (player.rect.bottomright[1] + y) // tile_height):
         player.rect.x += x
         player.rect.y += y
 
@@ -195,7 +197,7 @@ def mainloop():
         moving()
         # camera.update(player)
         # for sprite in all_sprites:
-            # camera.apply(sprite)
+        #     camera.apply(sprite)
         player.update()
         all_sprites.update()
         screen.fill('black')
@@ -211,6 +213,7 @@ if __name__ == '__main__':
     size = width, height = 1920, 1080
     permitted = ['-1', '33', '44', '45', '46', '51', '54', '55', '56', '64', '65', '66']
     screen = pygame.display.set_mode(size)
+    screen1 = pygame.display.set_mode((600, 600))
     manager1 = pygame_gui.UIManager(size)
     registration_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((320, 230), (170, 50)),
                                                        text='Создать аккаунт',
