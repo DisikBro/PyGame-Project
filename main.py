@@ -50,19 +50,18 @@ def load_level(filename):
     return level_map
 
 
-def generate_level(level, group,  flag=False):
+def generate_level(level, group):
     new_player, x, y = None, None, None
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == '33':
                 Tile('33.jpg', x, y, group)
-                new_player = Hero((x - 1.6) * tile_width, (y - 3.2) * tile_height)
+                new_player = Hero(x, y)
             elif level[y][x] == '-1':
                 pass
             else:
                 Tile(f'{level[y][x]}.jpg', x, y, group)
-    if not flag:
-        return new_player, x, y
+    return new_player, x, y
 
 
 def terminate():
@@ -70,12 +69,31 @@ def terminate():
     sys.exit()
 
 
+class Map:
+    def __init__(self):
+        self.layers = []
+        self.player = None
+        for i in list_of_groups:
+            layer = load_level(f'karta._Слой тайлов {list_of_groups.index(i) + 1}.csv')
+            self.layers.append(layer)
+            player1, level_x, level_y = generate_level(layer, i)
+            if player1:
+                self.player = player1
+
+    def check_tile(self, x, y):
+        for j in self.layers:
+            if j[y][x] not in permitted:
+                return False
+        return True
+
+
 class Hero(pygame.sprite.Sprite):
-    def __init__(self, x, y):
+    def __init__(self, pos_x, pos_y):
         super().__init__(player_group, all_sprites)
         self.cur_frame = 0
-        self.image = pygame.image.load('stand/1.png')
-        self.rect = self.image.get_rect(center=(x, y))
+        self.image = pygame.image.load('stand/1.png').convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = tile_width * pos_x, tile_height * pos_y
         self.run_right = False
         self.run_left = False
         self.frames = ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png']
@@ -136,6 +154,36 @@ class Enemy(pygame.sprite.Sprite):
 
 
 
+def moving():
+    x, y = 0, 0
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_a]:
+        x = -5
+        player.run_left = True
+    if keys[pygame.K_d]:
+        x = 5
+        player.run_right = True
+    if keys[pygame.K_w]:
+        if player.run_left:
+            pass
+        elif player.run_right:
+            pass
+        else:
+            player.run_right = True
+        y = -5
+    if keys[pygame.K_s]:
+        if player.run_left:
+            pass
+        elif player.run_right:
+            pass
+        else:
+            player.run_right = True
+        y = 5
+    if game_map.check_tile((player.rect.x + x) // tile_width, (player.rect.y + y) // tile_height):
+        player.rect.x += x
+        player.rect.y += y
+
+
 def mainloop():
     while True:
         for event in pygame.event.get():
@@ -144,32 +192,10 @@ def mainloop():
             if event.type == pygame.KEYUP:
                 player.run_right = False
                 player.run_left = False
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_a]:
-            player.rect.x -= 5
-            player.run_left = True
-        if keys[pygame.K_d]:
-            player.rect.x += 5
-            player.run_right = True
-        if keys[pygame.K_w]:
-            if player.run_left:
-                pass
-            elif player.run_right:
-                pass
-            else:
-                player.run_right = True
-            player.rect.y -= 5
-        if keys[pygame.K_s]:
-            if player.run_left:
-                pass
-            elif player.run_right:
-                pass
-            else:
-                player.run_right = True
-            player.rect.y += 5
-        camera.update(player)
-        for sprite in all_sprites:
-            camera.apply(sprite)
+        moving()
+        # camera.update(player)
+        # for sprite in all_sprites:
+            # camera.apply(sprite)
         player.update()
         all_sprites.update()
         screen.fill('black')
@@ -182,9 +208,10 @@ def mainloop():
 
 if __name__ == '__main__':
     pygame.init()
-    size = width, height = 1064, 768
+    size = width, height = 1920, 1080
+    permitted = ['-1', '33', '44', '45', '46', '51', '54', '55', '56', '64', '65', '66']
     screen = pygame.display.set_mode(size)
-    manager1 = pygame_gui.UIManager((1064, 768))
+    manager1 = pygame_gui.UIManager(size)
     registration_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((320, 230), (170, 50)),
                                                        text='Создать аккаунт',
                                                        manager=manager1)
@@ -192,7 +219,7 @@ if __name__ == '__main__':
                                                    text='Войти',
                                                    manager=manager1)
 
-    manager2 = pygame_gui.UIManager((1920, 1080))
+    manager2 = pygame_gui.UIManager(size)
     label = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((190, 230), (128, 30)), text='Введите никнейм:',
                                         manager=manager2)
     login_entry = pygame_gui.elements.UITextEntryLine(pygame.Rect((320, 230), (170, 30)), manager2)
@@ -212,9 +239,9 @@ if __name__ == '__main__':
     player_group = pygame.sprite.Group()
     crackling_group = pygame.sprite.Group()
     tile_width = tile_height = 32
-    player, level_x, level_y = generate_level(load_level('karta._Слой тайлов 1.csv'), tiles_group1)
-    for i in list_of_groups[1:]:
-        generate_level(load_level(f'karta._Слой тайлов {list_of_groups.index(i) + 1}.csv'), i, True)
+    # camera = Camera()
+    game_map = Map()
+    player = game_map.player
     running = True
     manager = manager1
     FPS = 60
@@ -235,7 +262,6 @@ if __name__ == '__main__':
                     start_screen()
                     mainloop()
             manager.process_events(event)
-        camera = Camera()
         manager.update(time_delta)
         screen.fill('black')
         manager.draw_ui(screen)
