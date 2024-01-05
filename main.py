@@ -139,19 +139,40 @@ class Camera:
 
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, rect_x1, rect_y1, rect_x2, rect_y2, speed):
+    def __init__(self, speed):
         super().__init__(crackling_group, all_sprites)
         self.cur_frame = 0
-        self.image = pygame.image.load('crackling/idle.png')
-        self.rect_x1 = rect_x1
-        self.rect_x2 = rect_x2
-        self.rect_y1 = rect_y1
-        self.rect_y2 = rect_y2
-        self.spawn_x = random.choice(range(rect_x1, rect_x2))
-        self.spawn_y = random.choice(range(rect_y1, rect_y2))
-        self.spawn_point = (self.spawn_x, self.spawn_y)
-        self.speed = speed
+        self.image = pygame.image.load('m_run/1.png')
+        self.rect = self.image.get_rect()
+        self.rect.x = 1500
+        self.rect.y = random.randint(375, 525)
+        self.speed_x = speed
+        self.speed_y = None
+        self.live = True
+        self.objective = False
+        self.object_coords = 429, 480
+        self.frames = ['1.png', '2.png', '3.png']
 
+    def update(self):
+        self.cur_frame += 0.15
+        if self.cur_frame > 3:
+            self.cur_frame = 0
+        self.image = pygame.image.load(f'm_run/{self.frames[int(self.cur_frame)]}').convert_alpha()
+
+    def move(self):
+        if self.live:
+            if self.rect.y == 480 and self.rect.x > 429:
+                self.rect.x -= self.speed_x
+            if self.rect.y > 480 and self.rect.x > 429:
+                distance = ((self.rect.x - 429) ** 2 + (self.rect.y - 480) ** 2) ** 0.5
+                self.speed_y = abs((self.rect.y - 480) / distance)
+                self.rect.x -= self.speed_x
+                self.rect.y -= self.speed_y
+            if self.rect.y < 480 and self.rect.x > 429:
+                distance = ((self.rect.x - 429) ** 2 + (480 - self.rect.y) ** 2) ** 0.5
+                self.speed_y = -abs((480 - self.rect.y) / distance)
+                self.rect.x -= self.speed_x
+                self.rect.y -= self.speed_y
 
 def moving():
     x, y = 0, 0
@@ -203,7 +224,10 @@ def mainloop():
         screen.fill('black')
         for i in list_of_groups:
             i.draw(screen)
+        for i in enemies:
+            i.move()
         player_group.draw(screen)
+        crackling_group.draw(screen)
         pygame.display.flip()
         clock.tick(FPS)
 
@@ -213,7 +237,6 @@ if __name__ == '__main__':
     size = width, height = 1920, 1080
     permitted = ['-1', '33', '44', '45', '46', '51', '54', '55', '56', '64', '65', '66']
     screen = pygame.display.set_mode(size)
-    screen1 = pygame.display.set_mode((600, 600))
     manager1 = pygame_gui.UIManager(size)
     registration_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((320, 230), (170, 50)),
                                                        text='Создать аккаунт',
@@ -245,6 +268,10 @@ if __name__ == '__main__':
     # camera = Camera()
     game_map = Map()
     player = game_map.player
+    enemies = []
+    for i in range(10):
+        enemy = Enemy(2)
+        enemies.append(enemy)
     running = True
     manager = manager1
     FPS = 60
