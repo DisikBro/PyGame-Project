@@ -1,4 +1,5 @@
 import os
+import random
 import sys
 import pygame_gui
 import csv
@@ -106,10 +107,19 @@ class Tile(pygame.sprite.Sprite):
 
 
 class Enemy(pygame.sprite.Sprite):
-    def __init__(self, x, y):
+    def __init__(self, rect_x1, rect_y1, rect_x2, rect_y2, speed):
         super().__init__(crackling_group, all_sprites)
         self.cur_frame = 0
         self.image = pygame.image.load('crackling/idle.png')
+        self.rect_x1 = rect_x1
+        self.rect_x2 = rect_x2
+        self.rect_y1 = rect_y1
+        self.rect_y2 = rect_y2
+        self.spawn_x = random.choice(range(rect_x1, rect_x2))
+        self.spawn_y = random.choice(range(rect_y1, rect_y2))
+        self.spawn_point = (self.spawn_x, self.spawn_y)
+        self.speed = speed
+
 
 
 def mainloop():
