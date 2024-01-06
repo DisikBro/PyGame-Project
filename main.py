@@ -222,6 +222,7 @@ class Pickaxe(pygame.sprite.Sprite):
 
 
 def mainloop():
+    timer = 0
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -233,6 +234,10 @@ def mainloop():
         # camera.update(player)
         # for sprite in all_sprites:
         #     camera.apply(sprite)
+        timer += 1
+        if timer % 100 == 0:
+            enemy = Enemy(2)
+            enemies.append(enemy)
         player.update()
         all_sprites.update()
         screen.fill('black')
@@ -256,9 +261,6 @@ if __name__ == '__main__':
     player = game_map.player
     pickaxe = game_map.pickaxe
     enemies = []
-    for i in range(10):
-        enemy = Enemy(2)
-        enemies.append(enemy)
     running = True
     manager = manager1
     clock = pygame.time.Clock()
