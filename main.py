@@ -1,9 +1,11 @@
 import os
 import random
 import sys
-import pygame_gui
 import csv
-import pygame
+
+from UI import *
+from consts import *
+from groups import *
 
 
 def load_image(name, colorkey=None):
@@ -51,17 +53,18 @@ def load_level(filename):
 
 
 def generate_level(level, group):
-    new_player, x, y = None, None, None
+    new_player, pickaxe, x, y = None, None, None, None
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == '33':
                 Tile('33.jpg', x, y, group)
                 new_player = Hero(x, y)
+                pickaxe = Pickaxe(x, y)
             elif level[y][x] == '-1':
                 pass
             else:
                 Tile(f'{level[y][x]}.jpg', x, y, group)
-    return new_player, x, y
+    return new_player, pickaxe, x, y
 
 
 def terminate():
@@ -76,9 +79,10 @@ class Map:
         for i in list_of_groups:
             layer = load_level(f'karta._Слой тайлов {list_of_groups.index(i) + 1}.csv')
             self.layers.append(layer)
-            player1, level_x, level_y = generate_level(layer, i)
+            player1, pickaxe, level_x, level_y = generate_level(layer, i)
             if player1:
                 self.player = player1
+                self.pickaxe = pickaxe
 
     def check_tile(self, x, y):
         for j in self.layers:
@@ -96,6 +100,7 @@ class Hero(pygame.sprite.Sprite):
         self.rect.x, self.rect.y = tile_width * pos_x, tile_height * pos_y
         self.run_right = False
         self.run_left = False
+        self.item = True
         self.frames = ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png']
 
     def update(self):
@@ -114,6 +119,39 @@ class Hero(pygame.sprite.Sprite):
             if self.cur_frame > 7:
                 self.cur_frame = 0
             self.image = pygame.image.load(f'stand/{self.frames[int(self.cur_frame)]}')
+
+    def moving(self):
+        x, y = 0, 0
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_a]:
+            x = -5
+            self.run_left = True
+        if keys[pygame.K_d]:
+            x = 5
+            self.run_right = True
+        if keys[pygame.K_w]:
+            if self.run_left:
+                pass
+            elif self.run_right:
+                pass
+            else:
+                self.run_right = True
+            y = -5
+        if keys[pygame.K_s]:
+            if self.run_left:
+                pass
+            elif self.run_right:
+                pass
+            else:
+                self.run_right = True
+            y = 5
+        if game_map.check_tile((self.rect.bottomleft[0] + x) // tile_width,
+                               (self.rect.bottomleft[1] + y) // tile_height) and \
+                game_map.check_tile((self.rect.bottomright[0] + x) // tile_width,
+                                    (self.rect.bottomright[1] + y) // tile_height):
+            if self.item:
+                self.rect.move_ip(x, y)
+                pickaxe.rect.move_ip(x, y)
 
 
 class Tile(pygame.sprite.Sprite):
@@ -174,37 +212,13 @@ class Enemy(pygame.sprite.Sprite):
                 self.rect.x -= self.speed_x
                 self.rect.y -= self.speed_y
 
-def moving():
-    x, y = 0, 0
-    keys = pygame.key.get_pressed()
-    if keys[pygame.K_a]:
-        x = -5
-        player.run_left = True
-    if keys[pygame.K_d]:
-        x = 5
-        player.run_right = True
-    if keys[pygame.K_w]:
-        if player.run_left:
-            pass
-        elif player.run_right:
-            pass
-        else:
-            player.run_right = True
-        y = -5
-    if keys[pygame.K_s]:
-        if player.run_left:
-            pass
-        elif player.run_right:
-            pass
-        else:
-            player.run_right = True
-        y = 5
-    if game_map.check_tile((player.rect.bottomleft[0] + x) // tile_width,
-                           (player.rect.bottomleft[1] + y) // tile_height) and \
-            game_map.check_tile((player.rect.bottomright[0] + x) // tile_width,
-                                (player.rect.bottomright[1] + y) // tile_height):
-        player.rect.x += x
-        player.rect.y += y
+
+class Pickaxe(pygame.sprite.Sprite):
+    def __init__(self, pos_x, pos_y):
+        super().__init__(items_group, all_sprites)
+        self.image = load_image('pickaxe.png')
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = tile_width * pos_x + 25, tile_height * pos_y + 20
 
 
 def mainloop():
@@ -215,7 +229,7 @@ def mainloop():
             if event.type == pygame.KEYUP:
                 player.run_right = False
                 player.run_left = False
-        moving()
+        player.moving()
         # camera.update(player)
         # for sprite in all_sprites:
         #     camera.apply(sprite)
@@ -226,55 +240,27 @@ def mainloop():
             i.draw(screen)
         for i in enemies:
             i.move()
-        player_group.draw(screen)
         crackling_group.draw(screen)
+        player_group.draw(screen)
+        if not player.run_left and not player.run_right:
+            items_group.draw(screen)
         pygame.display.flip()
         clock.tick(FPS)
 
 
 if __name__ == '__main__':
     pygame.init()
-    size = width, height = 1920, 1080
-    permitted = ['-1', '33', '44', '45', '46', '51', '54', '55', '56', '64', '65', '66']
     screen = pygame.display.set_mode(size)
-    manager1 = pygame_gui.UIManager(size)
-    registration_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((320, 230), (170, 50)),
-                                                       text='Создать аккаунт',
-                                                       manager=manager1)
-    entrance_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((320, 300), (170, 50)),
-                                                   text='Войти',
-                                                   manager=manager1)
-
-    manager2 = pygame_gui.UIManager(size)
-    label = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((190, 230), (128, 30)), text='Введите никнейм:',
-                                        manager=manager2)
-    login_entry = pygame_gui.elements.UITextEntryLine(pygame.Rect((320, 230), (170, 30)), manager2)
-    accept_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((190, 265), (298, 30)),
-                                                 text='Подтвердить',
-                                                 manager=manager2)
-    back_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((190, 140), (100, 40)),
-                                               text='Назад',
-                                               manager=manager2)
-    all_sprites = pygame.sprite.Group()
-    tiles_group1 = pygame.sprite.Group()
-    tiles_group2 = pygame.sprite.Group()
-    tiles_group3 = pygame.sprite.Group()
-    tiles_group4 = pygame.sprite.Group()
-    tiles_group5 = pygame.sprite.Group()
-    list_of_groups = [tiles_group1, tiles_group2, tiles_group3, tiles_group4, tiles_group5]
-    player_group = pygame.sprite.Group()
-    crackling_group = pygame.sprite.Group()
-    tile_width = tile_height = 32
     # camera = Camera()
     game_map = Map()
     player = game_map.player
+    pickaxe = game_map.pickaxe
     enemies = []
     for i in range(10):
         enemy = Enemy(2)
         enemies.append(enemy)
     running = True
     manager = manager1
-    FPS = 60
     clock = pygame.time.Clock()
     while running:
         time_delta = clock.tick(60) / 1000.0
