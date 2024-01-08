@@ -3,7 +3,6 @@ import random
 import sys
 import csv
 
-import setuptools.config
 
 from UI import *
 from consts import *
@@ -190,10 +189,10 @@ class Enemy(pygame.sprite.Sprite):
         self.speed_x = speed
         self.speed_y = None
         self.live = True
-        self.objective = False
         self.object_coords = 429, 480
         self.frames = ['1.png', '2.png', '3.png']
         self.damage = 1
+        self.speed_y = (self.speed_x * (self.rect.y - 480)) / (self.rect.x - 429)
 
     def update(self):
         self.cur_frame += 0.15
@@ -207,16 +206,10 @@ class Enemy(pygame.sprite.Sprite):
         if self.live:
             if self.rect.y == 480 and self.rect.x > 429:
                 self.rect.x -= self.speed_x
-            if self.rect.y > 480 and self.rect.x > 429:
-                distance = ((self.rect.x - 429) ** 2 + (self.rect.y - 480) ** 2) ** 0.5
-                self.speed_y = abs((self.rect.y - 480) / distance)
+            else:
                 self.rect.x -= self.speed_x
                 self.rect.y -= self.speed_y
-            if self.rect.y < 480 and self.rect.x > 429:
-                distance = ((self.rect.x - 429) ** 2 + (480 - self.rect.y) ** 2) ** 0.5
-                self.speed_y = -abs((480 - self.rect.y) / distance)
-                self.rect.x -= self.speed_x
-                self.rect.y -= self.speed_y
+                print(self.speed_y)
 
     def attack(self):
         if self.rect.x <= 435:
@@ -264,9 +257,6 @@ def mainloop():
                 player.run_right = False
                 player.run_left = False
         player.moving()
-        # camera.update(player)
-        # for sprite in all_sprites:
-        #     camera.apply(sprite)
         player.update()
         objective.update()
         all_sprites.update()
@@ -292,8 +282,8 @@ if __name__ == '__main__':
     player = game_map.player
     pickaxe = game_map.pickaxe
     enemies = []
-    for _ in range(1):
-        enemy = Enemy(0.78)
+    for _ in range(2):
+        enemy = Enemy(0.1)
         enemies.append(enemy)
     running = True
     manager = manager1
