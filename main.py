@@ -3,8 +3,6 @@ import random
 import sys
 import csv
 
-import pygame
-
 from UI import *
 from consts import *
 from groups import *
@@ -66,6 +64,18 @@ def generate_level(level, group):
             else:
                 Tile(f'{level[y][x]}.jpg', x, y, group)
     return new_player, x, y
+
+
+def statistics(timer):
+    attack_time = 10 - timer // 100
+    if 1000 < timer < 1500:
+        font = pygame.font.SysFont(None, 20)
+        img = font.render(f'Внимание атака: {15 - timer // 100}', True, 'black')
+        screen.blit(img, (20, 20))
+    else:
+        font = pygame.font.SysFont(None, 20)
+        img = font.render(f'Время до следующей атаки: {attack_time}', True, 'black')
+        screen.blit(img, (20, 20))
 
 
 def terminate():
@@ -302,21 +312,25 @@ def mainloop():
         # for sprite in all_sprites:
         #     camera.apply(sprite)
         timer += 1
-        if timer % 100 == 0:
-            enemy = Enemy(2)
-            enemies.append(enemy)
         player.update()
         all_sprites.update()
         screen.fill('black')
         for i in list_of_groups:
             i.draw(screen)
+        if 1000 < timer < 1500:
+            if timer % 100 == 0:
+                enemy = Enemy(2)
+                enemies.append(enemy)
         for i in enemies:
             i.move()
+            crackling_group.draw(screen)
+        if timer > 1500:
+            timer = 0
         objective_group.draw(screen)
-        crackling_group.draw(screen)
         player_group.draw(screen)
         if not player.run_left and not player.run_right:
             player.item.groups()[0].draw(screen)
+        statistics(timer)
         pygame.display.flip()
         clock.tick(FPS)
 
@@ -332,9 +346,6 @@ if __name__ == '__main__':
     pickaxe = Pickaxe(player.pos_x, player.pos_y)
     player.add_item(pickaxe)
     enemies = []
-    for i in range(10):
-        enemy = Enemy(2)
-        enemies.append(enemy)
     running = True
     manager = manager1
     clock = pygame.time.Clock()
