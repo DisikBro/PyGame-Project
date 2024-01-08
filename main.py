@@ -205,19 +205,26 @@ class Enemy(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = 1500
         self.rect.y = random.randint(375, 525)
+        self.hp = 2
         self.speed_x = speed
         self.speed_y = None
-        self.alive = True
+        self.live = True
+        self.objective = False
+        self.object_coords = 429, 480
         self.frames = ['1.png', '2.png', '3.png']
+        self.damage = 1
+        self.speed_y = (self.speed_x * (self.rect.y - 480)) / (self.rect.x - 429)
 
     def update(self):
         self.cur_frame += 0.15
         if self.cur_frame > 3:
             self.cur_frame = 0
         self.image = pygame.image.load(f'm_run/{self.frames[int(self.cur_frame)]}').convert_alpha()
+        self.death()
+        self.attack()
 
     def move(self):
-        if self.alive:
+        if self.live:
             if self.rect.y == 480 and self.rect.x > 429:
                 self.rect.x -= self.speed_x
             if self.rect.y > 480 and self.rect.x > 429:
@@ -230,6 +237,16 @@ class Enemy(pygame.sprite.Sprite):
                 self.speed_y = -abs((480 - self.rect.y) / distance)
                 self.rect.x -= self.speed_x
                 self.rect.y -= self.speed_y
+                print(self.speed_y)
+
+    def attack(self):
+        if self.rect.x <= 435:
+            objective.damagged()
+            print(objective.hp)
+
+    def death(self):
+        if self.hp <= 0:
+            self.kill()
 
 
 class Pickaxe(pygame.sprite.Sprite):
@@ -248,7 +265,27 @@ class Sword(pygame.sprite.Sprite):
         self.rect.x, self.rect.y = tile_width * pos_x + 30, tile_height * pos_y + 15
 
 
+class Objective(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__(objective_group, all_sprites)
+        self.image = load_image('image_2_3.png')
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = 390, 450
+        self.hp = 15
+
+    def update(self):
+        self.defeat()
+
+    def damagged(self):
+        self.hp -= 1
+
+    def defeat(self):
+        if self.hp <= 0:
+            self.kill()
+
+
 def mainloop():
+    timer = 0
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -264,6 +301,10 @@ def mainloop():
         # camera.update(player)
         # for sprite in all_sprites:
         #     camera.apply(sprite)
+        timer += 1
+        if timer % 100 == 0:
+            enemy = Enemy(2)
+            enemies.append(enemy)
         player.update()
         all_sprites.update()
         screen.fill('black')
@@ -271,6 +312,7 @@ def mainloop():
             i.draw(screen)
         for i in enemies:
             i.move()
+        objective_group.draw(screen)
         crackling_group.draw(screen)
         player_group.draw(screen)
         if not player.run_left and not player.run_right:
@@ -282,7 +324,7 @@ def mainloop():
 if __name__ == '__main__':
     pygame.init()
     screen = pygame.display.set_mode(size)
-    # camera = Camera()
+    objective = Objective()
     game_map = Map()
     player = game_map.player
     sword = Sword(player.pos_x, player.pos_y)
