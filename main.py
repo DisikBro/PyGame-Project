@@ -3,7 +3,6 @@ import random
 import sys
 import csv
 
-
 from UI import *
 from consts import *
 from groups import *
@@ -189,6 +188,7 @@ class Enemy(pygame.sprite.Sprite):
         self.speed_x = speed
         self.speed_y = None
         self.live = True
+        self.objective = False
         self.object_coords = 429, 480
         self.frames = ['1.png', '2.png', '3.png']
         self.damage = 1
@@ -249,6 +249,7 @@ class Objective(pygame.sprite.Sprite):
 
 
 def mainloop():
+    timer = 0
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -257,8 +258,14 @@ def mainloop():
                 player.run_right = False
                 player.run_left = False
         player.moving()
+        # camera.update(player)
+        # for sprite in all_sprites:
+        #     camera.apply(sprite)
+        timer += 1
+        if timer % 100 == 0:
+            enemy = Enemy(2)
+            enemies.append(enemy)
         player.update()
-        objective.update()
         all_sprites.update()
         screen.fill('black')
         for i in list_of_groups:
@@ -282,9 +289,6 @@ if __name__ == '__main__':
     player = game_map.player
     pickaxe = game_map.pickaxe
     enemies = []
-    for _ in range(2):
-        enemy = Enemy(0.1)
-        enemies.append(enemy)
     running = True
     manager = manager1
     clock = pygame.time.Clock()
