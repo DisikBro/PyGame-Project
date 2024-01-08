@@ -206,7 +206,7 @@ class Enemy(pygame.sprite.Sprite):
         if self.live:
             if self.rect.y == 480 and self.rect.x > 429:
                 self.rect.x -= self.speed_x
-            else:
+            elif self.rect.x > 429:
                 self.rect.x -= self.speed_x
                 self.rect.y -= self.speed_y
                 print(self.speed_y)
