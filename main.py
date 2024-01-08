@@ -3,6 +3,8 @@ import random
 import sys
 import csv
 
+import setuptools.config
+
 from UI import *
 from consts import *
 from groups import *
@@ -221,6 +223,14 @@ class Pickaxe(pygame.sprite.Sprite):
         self.rect.x, self.rect.y = tile_width * pos_x + 25, tile_height * pos_y + 20
 
 
+class Objective(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__(objective_group, all_sprites)
+        self.image = load_image('image_2_3.png')
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = 390, 450
+
+
 def mainloop():
     while True:
         for event in pygame.event.get():
@@ -240,6 +250,7 @@ def mainloop():
             i.draw(screen)
         for i in enemies:
             i.move()
+        objective_group.draw(screen)
         crackling_group.draw(screen)
         player_group.draw(screen)
         if not player.run_left and not player.run_right:
@@ -251,7 +262,7 @@ def mainloop():
 if __name__ == '__main__':
     pygame.init()
     screen = pygame.display.set_mode(size)
-    # camera = Camera()
+    objective = Objective()
     game_map = Map()
     player = game_map.player
     pickaxe = game_map.pickaxe
