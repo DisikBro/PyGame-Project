@@ -67,6 +67,18 @@ def generate_level(level, group):
     return new_player, pickaxe, x, y
 
 
+def statistics(timer):
+    attack_time = 10 - timer // 100
+    if 1000 < timer < 1500:
+        font = pygame.font.SysFont(None, 20)
+        img = font.render(f'Внимание атака: {15 - timer // 100}', True, 'black')
+        screen.blit(img, (20, 20))
+    else:
+        font = pygame.font.SysFont(None, 20)
+        img = font.render(f'Время до следующей атаки: {attack_time}', True, 'black')
+        screen.blit(img, (20, 20))
+
+
 def terminate():
     pygame.quit()
     sys.exit()
@@ -262,21 +274,25 @@ def mainloop():
         # for sprite in all_sprites:
         #     camera.apply(sprite)
         timer += 1
-        if timer % 100 == 0:
-            enemy = Enemy(2)
-            enemies.append(enemy)
         player.update()
         all_sprites.update()
         screen.fill('black')
         for i in list_of_groups:
             i.draw(screen)
+        if 1000 < timer < 1500:
+            if timer % 100 == 0:
+                enemy = Enemy(2)
+                enemies.append(enemy)
         for i in enemies:
             i.move()
+            crackling_group.draw(screen)
+        if timer > 1500:
+            timer = 0
         objective_group.draw(screen)
-        crackling_group.draw(screen)
         player_group.draw(screen)
         if not player.run_left and not player.run_right:
             items_group.draw(screen)
+        statistics(timer)
         pygame.display.flip()
         clock.tick(FPS)
 
