@@ -186,18 +186,22 @@ class Enemy(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = 1500
         self.rect.y = random.randint(375, 525)
+        self.hp = 2
         self.speed_x = speed
         self.speed_y = None
         self.live = True
         self.objective = False
         self.object_coords = 429, 480
         self.frames = ['1.png', '2.png', '3.png']
+        self.damage = 1
 
     def update(self):
         self.cur_frame += 0.15
         if self.cur_frame > 3:
             self.cur_frame = 0
         self.image = pygame.image.load(f'm_run/{self.frames[int(self.cur_frame)]}').convert_alpha()
+        self.death()
+        self.attack()
 
     def move(self):
         if self.live:
@@ -214,6 +218,15 @@ class Enemy(pygame.sprite.Sprite):
                 self.rect.x -= self.speed_x
                 self.rect.y -= self.speed_y
 
+    def attack(self):
+        if self.rect.x <= 435:
+            objective.damagged()
+            print(objective.hp)
+
+    def death(self):
+        if self.hp <= 0:
+            self.kill()
+
 
 class Pickaxe(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
@@ -229,6 +242,17 @@ class Objective(pygame.sprite.Sprite):
         self.image = load_image('image_2_3.png')
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = 390, 450
+        self.hp = 15
+
+    def update(self):
+        self.defeat()
+
+    def damagged(self):
+        self.hp -= 1
+
+    def defeat(self):
+        if self.hp <= 0:
+            self.kill()
 
 
 def mainloop():
@@ -244,6 +268,7 @@ def mainloop():
         # for sprite in all_sprites:
         #     camera.apply(sprite)
         player.update()
+        objective.update()
         all_sprites.update()
         screen.fill('black')
         for i in list_of_groups:
@@ -267,8 +292,8 @@ if __name__ == '__main__':
     player = game_map.player
     pickaxe = game_map.pickaxe
     enemies = []
-    for i in range(10):
-        enemy = Enemy(2)
+    for _ in range(1):
+        enemy = Enemy(0.78)
         enemies.append(enemy)
     running = True
     manager = manager1
