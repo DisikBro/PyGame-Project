@@ -8,5 +8,6 @@ tiles_group4 = pygame.sprite.Group()
 tiles_group5 = pygame.sprite.Group()
 list_of_groups = [tiles_group1, tiles_group2, tiles_group3, tiles_group4, tiles_group5]
 player_group = pygame.sprite.Group()
-items_group = pygame.sprite.Group()
+sword_group = pygame.sprite.Group()
+pickaxe_group = pygame.sprite.Group()
 crackling_group = pygame.sprite.Group()

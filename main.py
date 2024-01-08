@@ -3,6 +3,8 @@ import random
 import sys
 import csv
 
+import pygame
+
 from UI import *
 from consts import *
 from groups import *
@@ -53,18 +55,17 @@ def load_level(filename):
 
 
 def generate_level(level, group):
-    new_player, pickaxe, x, y = None, None, None, None
+    new_player, x, y = None, None, None
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == '33':
                 Tile('33.jpg', x, y, group)
                 new_player = Hero(x, y)
-                pickaxe = Pickaxe(x, y)
             elif level[y][x] == '-1':
                 pass
             else:
                 Tile(f'{level[y][x]}.jpg', x, y, group)
-    return new_player, pickaxe, x, y
+    return new_player, x, y
 
 
 def terminate():
@@ -79,10 +80,9 @@ class Map:
         for i in list_of_groups:
             layer = load_level(f'karta._Слой тайлов {list_of_groups.index(i) + 1}.csv')
             self.layers.append(layer)
-            player1, pickaxe, level_x, level_y = generate_level(layer, i)
+            player1, level_x, level_y = generate_level(layer, i)
             if player1:
                 self.player = player1
-                self.pickaxe = pickaxe
 
     def check_tile(self, x, y):
         for j in self.layers:
@@ -97,10 +97,12 @@ class Hero(pygame.sprite.Sprite):
         self.cur_frame = 0
         self.image = pygame.image.load('stand/1.png').convert_alpha()
         self.rect = self.image.get_rect()
+        self.pos_x, self.pos_y = pos_x, pos_y
         self.rect.x, self.rect.y = tile_width * pos_x, tile_height * pos_y
+        self.inventory = []
         self.run_right = False
         self.run_left = False
-        self.item = True
+        self.item = None
         self.frames = ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png']
 
     def update(self):
@@ -149,9 +151,28 @@ class Hero(pygame.sprite.Sprite):
                                (self.rect.bottomleft[1] + y) // tile_height) and \
                 game_map.check_tile((self.rect.bottomright[0] + x) // tile_width,
                                     (self.rect.bottomright[1] + y) // tile_height):
+            self.rect.move_ip(x, y)
+            self.pos_x, self.pos_y = self.rect.x // tile_width, self.rect.y // tile_height
             if self.item:
-                self.rect.move_ip(x, y)
-                pickaxe.rect.move_ip(x, y)
+                for j in self.inventory:
+                    j.rect.move_ip(x, y)
+
+    def add_item(self, item):
+        self.inventory.append(item)
+        if len(self.inventory) == 1:
+            self.item = item
+
+    def next_item(self):
+        if len(self.inventory) > 1:
+            self.item = self.inventory[(self.inventory.index(self.item) + 1) %
+                                       len(self.inventory)]
+
+    def previous_item(self):
+        if len(self.inventory) > 1:
+            if self.inventory[self.inventory.index(self.item)] == 0:
+                self.item = self.inventory[-1]
+            else:
+                self.item = self.inventory[self.inventory.index(self.item) - 1]
 
 
 class Tile(pygame.sprite.Sprite):
@@ -186,9 +207,7 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.y = random.randint(375, 525)
         self.speed_x = speed
         self.speed_y = None
-        self.live = True
-        self.objective = False
-        self.object_coords = 429, 480
+        self.alive = True
         self.frames = ['1.png', '2.png', '3.png']
 
     def update(self):
@@ -198,7 +217,7 @@ class Enemy(pygame.sprite.Sprite):
         self.image = pygame.image.load(f'm_run/{self.frames[int(self.cur_frame)]}').convert_alpha()
 
     def move(self):
-        if self.live:
+        if self.alive:
             if self.rect.y == 480 and self.rect.x > 429:
                 self.rect.x -= self.speed_x
             if self.rect.y > 480 and self.rect.x > 429:
@@ -215,10 +234,18 @@ class Enemy(pygame.sprite.Sprite):
 
 class Pickaxe(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
-        super().__init__(items_group, all_sprites)
+        super().__init__(pickaxe_group, all_sprites)
         self.image = load_image('pickaxe.png')
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = tile_width * pos_x + 25, tile_height * pos_y + 20
+
+
+class Sword(pygame.sprite.Sprite):
+    def __init__(self, pos_x, pos_y):
+        super().__init__(sword_group, all_sprites)
+        self.image = load_image('sword.png')
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = tile_width * pos_x + 30, tile_height * pos_y + 15
 
 
 def mainloop():
@@ -229,6 +256,10 @@ def mainloop():
             if event.type == pygame.KEYUP:
                 player.run_right = False
                 player.run_left = False
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_WHEELUP:
+                player.previous_item()
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_WHEELDOWN:
+                player.next_item()
         player.moving()
         # camera.update(player)
         # for sprite in all_sprites:
@@ -243,7 +274,7 @@ def mainloop():
         crackling_group.draw(screen)
         player_group.draw(screen)
         if not player.run_left and not player.run_right:
-            items_group.draw(screen)
+            player.item.groups()[0].draw(screen)
         pygame.display.flip()
         clock.tick(FPS)
 
@@ -254,7 +285,10 @@ if __name__ == '__main__':
     # camera = Camera()
     game_map = Map()
     player = game_map.player
-    pickaxe = game_map.pickaxe
+    sword = Sword(player.pos_x, player.pos_y)
+    player.add_item(sword)
+    pickaxe = Pickaxe(player.pos_x, player.pos_y)
+    player.add_item(pickaxe)
     enemies = []
     for i in range(10):
         enemy = Enemy(2)
