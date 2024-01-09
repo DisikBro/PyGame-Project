@@ -324,11 +324,11 @@ def mainloop():
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_WHEELDOWN:
                 player.next_item()
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if (event.button == pygame.BUTTON_LEFT and
+                if (event.button == pygame.BUTTON_LEFT and not isinstance(player.item, Sword) and
                         27 <= player.pos_x <= 31 and 7 <= player.pos_y <= 8 and
                         867 <= mouse_x <= 1055 and 209 <= mouse_y <= 317):
                     resources.update(rock_mine=True, wood_mine=False)
-                elif (event.button == pygame.BUTTON_LEFT and
+                elif (event.button == pygame.BUTTON_LEFT and not isinstance(player.item, Sword) and
                       30 <= player.pos_x <= 34 and player.pos_y == 17 and
                         1000 <= mouse_x <= 1113 and 643 <= mouse_y <= 758):
                     resources.update(rock_mine=False, wood_mine=True)
