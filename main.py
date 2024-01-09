@@ -76,6 +76,9 @@ def statistics(timer):
         font = pygame.font.SysFont(None, 20)
         img = font.render(f'Время до следующей атаки: {attack_time}', True, 'black')
         screen.blit(img, (20, 20))
+    font = pygame.font.SysFont(None, 20)
+    img = font.render(f'Кол-во ресурсов, камень - {resources.rock}, дерево - {resources.wood}', True, 'black')
+    screen.blit(img, (20, 40))
 
 
 def terminate():
@@ -247,12 +250,12 @@ class Enemy(pygame.sprite.Sprite):
                 self.speed_y = -abs((480 - self.rect.y) / distance)
                 self.rect.x -= self.speed_x
                 self.rect.y -= self.speed_y
-                print(self.speed_y)
+                # print(self.speed_y)
 
     def attack(self):
         if self.rect.x <= 435:
             objective.damagged()
-            print(objective.hp)
+            # print(objective.hp)
 
     def death(self):
         if self.hp <= 0:
@@ -294,9 +297,22 @@ class Objective(pygame.sprite.Sprite):
             self.kill()
 
 
+class Resources:
+    def __init__(self):
+        self.rock = 0
+        self.wood = 0
+
+    def update(self, rock_mine, wood_mine):
+        if rock_mine and not wood_mine:
+            self.rock += 1
+        elif wood_mine and not rock_mine:
+            self.wood += 1
+
+
 def mainloop():
     timer = 0
     while True:
+        mouse_x, mouse_y = pygame.mouse.get_pos()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
@@ -307,6 +323,16 @@ def mainloop():
                 player.previous_item()
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_WHEELDOWN:
                 player.next_item()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if (event.button == pygame.BUTTON_LEFT and
+                        27 <= player.pos_x <= 31 and 7 <= player.pos_y <= 8 and
+                        867 <= mouse_x <= 1055 and 209 <= mouse_y <= 317):
+                    resources.update(rock_mine=True, wood_mine=False)
+                elif (event.button == pygame.BUTTON_LEFT and
+                      30 <= player.pos_x <= 34 and player.pos_y == 17 and
+                        1000 <= mouse_x <= 1113 and 643 <= mouse_y <= 758):
+                    resources.update(rock_mine=False, wood_mine=True)
+
         player.moving()
         # camera.update(player)
         # for sprite in all_sprites:
@@ -340,6 +366,7 @@ if __name__ == '__main__':
     screen = pygame.display.set_mode(size)
     objective = Objective()
     game_map = Map()
+    resources = Resources()
     player = game_map.player
     sword = Sword(player.pos_x, player.pos_y)
     player.add_item(sword)
