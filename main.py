@@ -108,6 +108,7 @@ class Hero(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
         super().__init__(player_group, all_sprites)
         self.cur_frame = 0
+        self.cur_frame1 = 0
         self.image = pygame.image.load('stand/1.png').convert_alpha()
         self.rect = self.image.get_rect()
         self.pos_x, self.pos_y = pos_x, pos_y
@@ -115,60 +116,73 @@ class Hero(pygame.sprite.Sprite):
         self.inventory = []
         self.run_right = False
         self.run_left = False
+        self.attack1 = False
         self.item = None
         self.frames = ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png']
 
     def update(self):
-        if self.run_right:
-            self.cur_frame += 0.15
-            if self.cur_frame > 7:
-                self.cur_frame = 0
-            self.image = pygame.image.load(f'run_right/{self.frames[int(self.cur_frame)]}')
-        elif self.run_left:
-            self.cur_frame += 0.15
-            if self.cur_frame > 7:
-                self.cur_frame = 0
-            self.image = pygame.image.load(f'run_left/{self.frames[int(self.cur_frame)]}')
-        else:
-            self.cur_frame += 0.15
-            if self.cur_frame > 7:
-                self.cur_frame = 0
-            self.image = pygame.image.load(f'stand/{self.frames[int(self.cur_frame)]}')
+        if not self.attack1:
+            if self.run_right:
+                self.cur_frame += 0.15
+                if self.cur_frame > 7:
+                    self.cur_frame = 0
+                self.image = pygame.image.load(f'run_right/{self.frames[int(self.cur_frame)]}')
+            elif self.run_left:
+                self.cur_frame += 0.15
+                if self.cur_frame > 7:
+                    self.cur_frame = 0
+                self.image = pygame.image.load(f'run_left/{self.frames[int(self.cur_frame)]}')
+            else:
+                self.cur_frame += 0.15
+                if self.cur_frame > 7:
+                    self.cur_frame = 0
+                self.image = pygame.image.load(f'stand/{self.frames[int(self.cur_frame)]}')
 
     def moving(self):
-        x, y = 0, 0
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_a]:
-            x = -5
-            self.run_left = True
-        if keys[pygame.K_d]:
-            x = 5
-            self.run_right = True
-        if keys[pygame.K_w]:
-            if self.run_left:
-                pass
-            elif self.run_right:
-                pass
-            else:
+        if not self.attack1:
+            x, y = 0, 0
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_a]:
+                x = -5
+                self.run_left = True
+            if keys[pygame.K_d]:
+                x = 5
                 self.run_right = True
-            y = -5
-        if keys[pygame.K_s]:
-            if self.run_left:
-                pass
-            elif self.run_right:
-                pass
+            if keys[pygame.K_w]:
+                if self.run_left:
+                    pass
+                elif self.run_right:
+                    pass
+                else:
+                    self.run_right = True
+                y = -5
+            if keys[pygame.K_s]:
+                if self.run_left:
+                    pass
+                elif self.run_right:
+                    pass
+                else:
+                    self.run_right = True
+                y = 5
+            if game_map.check_tile((self.rect.bottomleft[0] + x) // tile_width,
+                                   (self.rect.bottomleft[1] + y) // tile_height) and \
+                    game_map.check_tile((self.rect.bottomright[0] + x) // tile_width,
+                                        (self.rect.bottomright[1] + y) // tile_height):
+                self.rect.move_ip(x, y)
+                self.pos_x, self.pos_y = self.rect.x // tile_width, self.rect.y // tile_height
+                if self.item:
+                    for j in self.inventory:
+                        j.rect.move_ip(x, y)
+
+    def attack(self, evt):
+        if self.attack1:
+            if evt.pos[0] >= self.rect.x + self.rect.w / 2:
+                self.image = pygame.image.load(f'attack/{self.frames[int(self.cur_frame1) % 4]}')
+                self.cur_frame1 += 0.2
             else:
-                self.run_right = True
-            y = 5
-        if game_map.check_tile((self.rect.bottomleft[0] + x) // tile_width,
-                               (self.rect.bottomleft[1] + y) // tile_height) and \
-                game_map.check_tile((self.rect.bottomright[0] + x) // tile_width,
-                                    (self.rect.bottomright[1] + y) // tile_height):
-            self.rect.move_ip(x, y)
-            self.pos_x, self.pos_y = self.rect.x // tile_width, self.rect.y // tile_height
-            if self.item:
-                for j in self.inventory:
-                    j.rect.move_ip(x, y)
+                img = pygame.image.load(f'attack/{self.frames[int(self.cur_frame1) % 4]}')
+                self.image = pygame.transform.flip(img, True, False)
+                self.cur_frame1 += 0.2
 
     def add_item(self, item):
         self.inventory.append(item)
@@ -311,6 +325,7 @@ class Resources:
 
 def mainloop():
     timer = 0
+    evt = None
     while True:
         mouse_x, mouse_y = pygame.mouse.get_pos()
         for event in pygame.event.get():
@@ -323,17 +338,25 @@ def mainloop():
                 player.previous_item()
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_WHEELDOWN:
                 player.next_item()
+            if event.type == pygame.MOUSEBUTTONUP and event.button == pygame.BUTTON_LEFT:
+                player.attack1 = False
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if (event.button == pygame.BUTTON_LEFT and not isinstance(player.item, Sword) and
+                if (event.button == pygame.BUTTON_LEFT and isinstance(player.item, Pickaxe) and
                         27 <= player.pos_x <= 31 and 7 <= player.pos_y <= 8 and
                         867 <= mouse_x <= 1055 and 209 <= mouse_y <= 317):
                     resources.update(rock_mine=True, wood_mine=False)
-                elif (event.button == pygame.BUTTON_LEFT and not isinstance(player.item, Sword) and
+                elif (event.button == pygame.BUTTON_LEFT and isinstance(player.item, Pickaxe) and
                       30 <= player.pos_x <= 34 and player.pos_y == 17 and
-                        1000 <= mouse_x <= 1113 and 643 <= mouse_y <= 758):
+                      1000 <= mouse_x <= 1113 and 643 <= mouse_y <= 758):
                     resources.update(rock_mine=False, wood_mine=True)
-
+                elif (event.button == pygame.BUTTON_LEFT and
+                      isinstance(player.item, Sword)):
+                    evt = event
+                    player.attack1 = True
+                    player.run_right = False
+                    player.run_left = False
         player.moving()
+        player.attack(evt)
         # camera.update(player)
         # for sprite in all_sprites:
         #     camera.apply(sprite)
@@ -354,7 +377,7 @@ def mainloop():
             timer = 0
         objective_group.draw(screen)
         player_group.draw(screen)
-        if not player.run_left and not player.run_right:
+        if not player.run_left and not player.run_right and not player.attack1:
             player.item.groups()[0].draw(screen)
         statistics(timer)
         pygame.display.flip()
