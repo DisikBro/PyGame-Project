@@ -1,0 +1,27 @@
+{
+  "buttons": {
+    "defaults": {
+      "colours": {
+        "normal_bg": "#66fff0",
+        "hovered_bg": "#017d71",
+        "disabled_bg": "#00665c",
+        "selected_bg": "#00665c",
+        "normal_text": "#000000",
+        "hovered_text": "#000000",
+        "selected_text": "#000000",
+        "disabled_text": "#000000",
+        "link_text": "#0000EE",
+        "link_hover": "#2020FF",
+        "link_selected": "#551A8B",
+        "text_shadow": "#777777",
+        "normal_border": "#000000",
+        "hovered_border": "#000000",
+        "disabled_border": "#000000",
+        "selected_border": "#000000",
+        "active_border": "#000000",
+        "filled_bar": "#f4251b",
+        "unfilled_bar": "#CCCCCC"
+      }
+    }
+  }
+}
