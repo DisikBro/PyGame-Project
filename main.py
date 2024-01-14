@@ -4,8 +4,6 @@ import sys
 import csv
 import sqlite3
 
-import psutil
-
 from UI import *
 from consts import *
 from groups import *
@@ -27,18 +25,18 @@ def load_image(name, colorkey=None):
     return image
 
 
-def start_screen():
+def start_screen(flag):
     global manager
     count = 0
-    fon = pygame.transform.scale(load_image('developers.png'), (width, height))
-    screen.blit(fon, (0, 0))
+    if flag:
+        fon = pygame.transform.scale(load_image('developers.png'), (width, height))
+        screen.blit(fon, (0, 0))
 
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
-            elif event.type == pygame.KEYDOWN or \
-                    event.type == pygame.MOUSEBUTTONDOWN:
+            elif (event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN) or not flag:
                 if count < 1:
                     music_slider.set_current_value(con.cursor().execute("""SELECT music_volume FROM statistics 
                     WHERE user_id = (SELECT id FROM user WHERE nickname = ?)""", (nickname,)).fetchone()[0])
@@ -51,16 +49,13 @@ def start_screen():
                     screen.blit(fon, (0, 0))
             if event.type == pygame_gui.UI_BUTTON_PRESSED:
                 if event.ui_element == play_button:
-                    return  # начинаем игру
+                    mainloop()
                 if event.ui_element == settings_button:
                     manager = manager4
                 if event.ui_element == back_button1:
                     con.cursor().execute("""UPDATE statistics SET music_volume = ? 
                     WHERE user_id = (SELECT id FROM user WHERE nickname = ?)""", (music_slider.current_value, nickname))
                     con.commit()
-                    print(con.cursor().execute("""SELECT music_volume FROM statistics 
-                                        WHERE user_id = (SELECT id FROM user WHERE nickname = ?)""",
-                                               (nickname,)).fetchone()[0])
                     manager = manager3
                 if event.ui_element == exit_button:
                     terminate()
@@ -91,11 +86,10 @@ def generate_level(level, group):
         for x in range(len(level[y])):
             if level[y][x] == '33':
                 Tile('33.jpg', x, y, group)
-                # with sqlite3.connect('crack_db.sqlite') as con:
-                #     pos_x, pos_y = con.cursor().execute("""SELECT player_pos FROM statistics WHERE
-                #                                         user_id = (SELECT id FROM user WHERE nickname = ?)""",
-                #                                         ())
-                new_player = Hero(15, 15)
+                pos_x, pos_y = con.cursor().execute("""SELECT player_pos FROM statistics WHERE
+                                                    user_id = (SELECT id FROM user WHERE nickname = ?)""",
+                                                    (nickname,)).fetchone()[0].split(', ')
+                new_player = Hero(int(pos_x), int(pos_y))
             elif level[y][x] == '-1':
                 pass
             else:
@@ -105,17 +99,15 @@ def generate_level(level, group):
 
 def statistics(timer):
     attack_time = 10 - timer // 100
+    font = pygame.font.Font("data/Minecraft Rus NEW.otf", 30)
     if 1000 < timer < 1500:
-        font = pygame.font.SysFont(None, 20)
         img = font.render(f'Внимание атака: {15 - timer // 100}', True, 'black')
         screen.blit(img, (20, 20))
     else:
-        font = pygame.font.SysFont(None, 20)
         img = font.render(f'Время до следующей атаки: {attack_time}', True, 'black')
         screen.blit(img, (20, 20))
-    font = pygame.font.SysFont(None, 20)
     img = font.render(f'Кол-во ресурсов, камень - {resources.rock}, дерево - {resources.wood}', True, 'black')
-    screen.blit(img, (20, 40))
+    screen.blit(img, (20, 50))
 
 
 def terminate():
@@ -209,7 +201,6 @@ class Hero(pygame.sprite.Sprite):
                                         (self.rect.bottomright[1] + y) // tile_height):
                 self.rect.move_ip(x, y)
                 self.pos_x, self.pos_y = self.rect.x // tile_width, self.rect.y // tile_height
-                print(self.pos_x, self.pos_y)
                 if self.item:
                     for j in self.inventory:
                         j.rect.move_ip(x, y)
@@ -377,8 +368,10 @@ class Resources:
 
 
 def mainloop():
+    global manager
     timer = 0
     evt = None
+    pause = False
     while True:
         mouse_x, mouse_y = pygame.mouse.get_pos()
         for event in pygame.event.get():
@@ -399,40 +392,73 @@ def mainloop():
                         27 <= player.pos_x <= 31 and 7 <= player.pos_y <= 8 and
                         867 <= mouse_x <= 1055 and 209 <= mouse_y <= 317):
                     resources.update(rock_mine=True, wood_mine=False)
-                elif (event.button == pygame.BUTTON_LEFT and isinstance(player.item, Pickaxe) and
-                      30 <= player.pos_x <= 34 and player.pos_y == 17 and
-                      1000 <= mouse_x <= 1113 and 643 <= mouse_y <= 758):
+                if (event.button == pygame.BUTTON_LEFT and isinstance(player.item, Pickaxe) and
+                        30 <= player.pos_x <= 34 and player.pos_y == 17 and
+                        1000 <= mouse_x <= 1113 and 643 <= mouse_y <= 758):
                     resources.update(rock_mine=False, wood_mine=True)
-                elif (event.button == pygame.BUTTON_LEFT and
-                      isinstance(player.item, Sword)):
+                if (event.button == pygame.BUTTON_LEFT and
+                        isinstance(player.item, Sword)):
                     evt = event
                     player.attack1 = True
                     player.run_right = False
                     player.run_left = False
-        player.moving()
-        player.attack(evt)
-        # camera.update(player)
-        # for sprite in all_sprites:
-        #     camera.apply(sprite)
-        timer += 1
-        player.update()
-        all_sprites.update()
-        screen.fill('black')
-        for i in list_of_groups:
-            i.draw(screen)
-        if 1000 < timer < 1500:
-            if timer % 100 == 0:
-                enemy = Enemy(2)
-                enemies.append(enemy)
-        for i in enemies:
-            i.move()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                pause = True
+                manager = manager5
+            if event.type == pygame_gui.UI_BUTTON_PRESSED:
+                if event.ui_element == continue_button:
+                    pause = False
+                if event.ui_element == settings_button1:
+                    manager = manager4
+                if event.ui_element == back_button1:
+                    con.cursor().execute("""UPDATE statistics SET music_volume = ? 
+                                        WHERE user_id = (SELECT id FROM user WHERE nickname = ?)""",
+                                         (music_slider.current_value, nickname))
+                    con.commit()
+                    manager = manager5
+                if event.ui_element == exit_button1:
+                    manager = manager3
+                    start_screen(False)
+            if event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
+                if event.ui_element == music_slider:
+                    pygame.mixer.music.set_volume(music_slider.current_value)
+            manager.process_events(event)
+        manager.update(time_delta)
+        if not pause:
+            player.moving()
+            player.attack(evt)
+            # camera.update(player)
+            # for sprite in all_sprites:
+            #     camera.apply(sprite)
+            timer += 1
+            player.update()
+            all_sprites.update()
+            screen.fill('black')
+            for i in list_of_groups:
+                i.draw(screen)
+            if 1000 < timer < 1500:
+                if timer % 100 == 0:
+                    enemy = Enemy(2)
+                    enemies.append(enemy)
+            for i in enemies:
+                i.move()
+                crackling_group.draw(screen)
+            if timer > 1500:
+                timer = 0
+            objective_group.draw(screen)
+            player_group.draw(screen)
+            if not player.run_left and not player.run_right and not player.attack1:
+                player.item.groups()[0].draw(screen)
+        else:
+            screen.fill('black')
+            for i in list_of_groups:
+                i.draw(screen)
             crackling_group.draw(screen)
-        if timer > 1500:
-            timer = 0
-        objective_group.draw(screen)
-        player_group.draw(screen)
-        if not player.run_left and not player.run_right and not player.attack1:
-            player.item.groups()[0].draw(screen)
+            objective_group.draw(screen)
+            player_group.draw(screen)
+            if not player.run_left and not player.run_right and not player.attack1:
+                player.item.groups()[0].draw(screen)
+            manager.draw_ui(screen)
         statistics(timer)
         pygame.display.flip()
         clock.tick(FPS)
@@ -441,15 +467,6 @@ def mainloop():
 if __name__ == '__main__':
     pygame.init()
     screen = pygame.display.set_mode(size)
-    objective = Objective()
-    game_map = Map()
-    resources = Resources()
-    player = game_map.player
-    sword = Sword(player.pos_x, player.pos_y)
-    player.add_item(sword)
-    pickaxe = Pickaxe(player.pos_x, player.pos_y)
-    player.add_item(pickaxe)
-    enemies = []
     running = True
     entr = False
     reg = False
@@ -482,9 +499,17 @@ if __name__ == '__main__':
                             else:
                                 if check is not None:
                                     nickname = login_entry.text
+                                    objective = Objective()
+                                    game_map = Map()
+                                    resources = Resources()
+                                    player = game_map.player
+                                    sword = Sword(player.pos_x, player.pos_y)
+                                    player.add_item(sword)
+                                    pickaxe = Pickaxe(player.pos_x, player.pos_y)
+                                    player.add_item(pickaxe)
+                                    enemies = []
                                     manager = manager3
-                                    start_screen()
-                                    mainloop()
+                                    start_screen(True)
                                 else:
                                     message.set_text('Неверное имя пользователя!')
                         elif reg:
@@ -502,9 +527,17 @@ if __name__ == '__main__':
                                     VALUES ((SELECT id FROM user WHERE nickname = ?), '15, 15', 0, 0, 0, 0.2)""",
                                                          (nickname,))
                                     con.commit()
+                                    objective = Objective()
+                                    game_map = Map()
+                                    resources = Resources()
+                                    player = game_map.player
+                                    sword = Sword(player.pos_x, player.pos_y)
+                                    player.add_item(sword)
+                                    pickaxe = Pickaxe(player.pos_x, player.pos_y)
+                                    player.add_item(pickaxe)
+                                    enemies = []
                                     manager = manager3
-                                    start_screen()
-                                    mainloop()
+                                    start_screen(True)
             manager.process_events(event)
         manager.update(time_delta)
         screen.fill('black')

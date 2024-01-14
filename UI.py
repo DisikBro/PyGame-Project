@@ -48,3 +48,13 @@ back_button1 = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((790, 480)
 change_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((790, 360), (298, 30)),
                                              text='Сменить аккаунт',
                                              manager=manager4)
+manager5 = pygame_gui.UIManager(size, 'theme2.json')
+continue_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((790, 360), (298, 30)),
+                                               text='Продолжить',
+                                               manager=manager5)
+settings_button1 = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((790, 395), (298, 30)),
+                                                text='Настройки',
+                                                manager=manager5)
+exit_button1 = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((790, 430), (298, 30)),
+                                            text='Выход',
+                                            manager=manager5)
