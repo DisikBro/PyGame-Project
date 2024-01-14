@@ -45,3 +45,6 @@ label1 = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((790, 395), (298,
 back_button1 = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((790, 480), (100, 40)),
                                             text='Назад',
                                             manager=manager4)
+change_button = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((790, 360), (298, 30)),
+                                             text='Сменить аккаунт',
+                                             manager=manager4)

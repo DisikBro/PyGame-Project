@@ -4,6 +4,8 @@ import sys
 import csv
 import sqlite3
 
+import psutil
+
 from UI import *
 from consts import *
 from groups import *
@@ -39,7 +41,7 @@ def start_screen():
                     event.type == pygame.MOUSEBUTTONDOWN:
                 if count < 1:
                     music_slider.set_current_value(con.cursor().execute("""SELECT music_volume FROM statistics 
-                    WHERE user_id = (SELECT id FROM user WHERE nickname = ?)""", (nickname, )).fetchone()[0])
+                    WHERE user_id = (SELECT id FROM user WHERE nickname = ?)""", (nickname,)).fetchone()[0])
                     pygame.mixer.music.load('ost.mp3')
                     pygame.mixer.music.set_volume(music_slider.current_value)
                     pygame.mixer.music.play(-1)
@@ -61,6 +63,8 @@ def start_screen():
                                                (nickname,)).fetchone()[0])
                     manager = manager3
                 if event.ui_element == exit_button:
+                    terminate()
+                if event.ui_element == change_button:
                     terminate()
             if event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
                 if event.ui_element == music_slider:
@@ -496,7 +500,7 @@ if __name__ == '__main__':
                                     con.cursor().execute("""INSERT INTO statistics 
                                     (user_id, player_pos, wood, stone, game_time, music_volume)
                                     VALUES ((SELECT id FROM user WHERE nickname = ?), '15, 15', 0, 0, 0, 0.2)""",
-                                                         (nickname, ))
+                                                         (nickname,))
                                     con.commit()
                                     manager = manager3
                                     start_screen()
