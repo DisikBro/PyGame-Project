@@ -86,7 +86,8 @@ def generate_level(level, group):
         for x in range(len(level[y])):
             if level[y][x] == '33':
                 Tile('33.jpg', x, y, group)
-                pos_x, pos_y = con.cursor().execute("""SELECT player_pos FROM statistics WHERE
+                with sqlite3.connect('crack_db.sqlite') as con:
+                    pos_x, pos_y = con.cursor().execute("""SELECT player_pos FROM statistics WHERE
                                                     user_id = (SELECT id FROM user WHERE nickname = ?)""",
                                                     (nickname,)).fetchone()[0].split(', ')
                 new_player = Hero(int(pos_x), int(pos_y))
@@ -106,8 +107,17 @@ def statistics(timer):
     else:
         img = font.render(f'Время до следующей атаки: {attack_time}', True, 'black')
         screen.blit(img, (20, 20))
+    if turret.selected:
+        img = font.render('Выбрана турель', True, 'green')
+        screen.blit(img, (20, 130))
+
     img = font.render(f'Кол-во ресурсов, камень - {resources.rock}, дерево - {resources.wood}', True, 'black')
     screen.blit(img, (20, 50))
+
+    image = pygame.image.load('turret/1.png').convert_alpha()
+    rect = image.get_rect()
+    rect.x, rect.y = 20, 80
+    screen.blit(image, (rect.x, rect.y))
 
 
 def terminate():
@@ -154,17 +164,17 @@ class Hero(pygame.sprite.Sprite):
     def update(self):
         if not self.attack1:
             if self.run_right:
-                self.cur_frame += 0.15
+                self.cur_frame += 0.3
                 if self.cur_frame > 7:
                     self.cur_frame = 0
                 self.image = pygame.image.load(f'run_right/{self.frames[int(self.cur_frame)]}')
             elif self.run_left:
-                self.cur_frame += 0.15
+                self.cur_frame += 0.3
                 if self.cur_frame > 7:
                     self.cur_frame = 0
                 self.image = pygame.image.load(f'run_left/{self.frames[int(self.cur_frame)]}')
             else:
-                self.cur_frame += 0.15
+                self.cur_frame += 0.3
                 if self.cur_frame > 7:
                     self.cur_frame = 0
                 self.image = pygame.image.load(f'stand/{self.frames[int(self.cur_frame)]}')
@@ -268,19 +278,12 @@ class Enemy(pygame.sprite.Sprite):
         self.attack()
 
     def move(self):
-        if self.live:
-            if self.rect.y == 480 and self.rect.x > 429:
-                self.rect.x -= self.speed_x
-            if self.rect.y > 480 and self.rect.x > 429:
-                distance = ((self.rect.x - 429) ** 2 + (self.rect.y - 480) ** 2) ** 0.5
-                self.speed_y = abs((self.rect.y - 480) / distance)
-                self.rect.x -= self.speed_x
-                self.rect.y -= self.speed_y
-            if self.rect.y < 480 and self.rect.x > 429:
-                distance = ((self.rect.x - 429) ** 2 + (480 - self.rect.y) ** 2) ** 0.5
-                self.speed_y = -abs((480 - self.rect.y) / distance)
-                self.rect.x -= self.speed_x
-                self.rect.y -= self.speed_y
+        if self.live and self.rect.x >= 435:
+            self.rect.x -= self.speed_x
+            if self.rect.y > 480 and self.rect.x < 847:
+                self.rect.y -= 1
+            elif self.rect.y < 480 and self.rect.x < 847:
+                self.rect.y += 1
 
     def attack(self):
         if self.rect.x <= 435:
@@ -289,9 +292,16 @@ class Enemy(pygame.sprite.Sprite):
     def death(self):
         if self.hp <= 0:
             self.kill()
+            self.live = False
 
     def damaged(self, damage):
         self.hp -= damage
+
+    def get_top_pos(self):
+        return self.rect.x // tile_width, self.rect.y // tile_height
+
+    def get_bottom_pos(self):
+        return self.rect.bottomleft[0] // tile_width, self.rect.bottomleft[1] // tile_height
 
 
 class Objective(pygame.sprite.Sprite):
@@ -367,6 +377,49 @@ class Resources:
             self.wood += 1
 
 
+class Turret(pygame.sprite.Sprite):
+    def __init__(self, hp, mouse_x, mouse_y):
+        super().__init__(all_sprites, turret_group)
+        self.cur_frame = 0
+        self.image = pygame.image.load('turret/1.png').convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = mouse_x - 26, mouse_y - 24
+        self.hp = hp
+        self.alive = True
+        self.selected = False
+        self.frames = ['1.png', '2.png', '3.png', '1.png']
+
+    def update(self):
+        self.cur_frame += 0.11
+        if self.cur_frame > 3:
+            self.cur_frame = 0
+        self.image = pygame.image.load(f'turret/{self.frames[int(self.cur_frame)]}').convert_alpha()
+
+
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, damage, speed, x, y):
+        super().__init__(all_sprites, bullet_group)
+        self.cur_frame = 0
+        self.image = pygame.image.load('bullet/1.png').convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = x + 40, y + 7
+        self.speed = speed
+        self.damage = damage
+        self.frames = ['1.png', '2.png', '3.png', '4.png']
+
+    def update(self):
+        self.cur_frame += 0.10
+        if self.cur_frame > 4:
+            self.cur_frame = 0
+        self.image = pygame.image.load(f'bullet/{self.frames[int(self.cur_frame)]}').convert_alpha()
+
+    def move(self):
+        self.rect.x += self.speed
+
+    def get_pos(self):
+        return self.rect.x // tile_width, self.rect.y // tile_height
+
+
 def mainloop():
     global manager
     timer = 0
@@ -402,6 +455,13 @@ def mainloop():
                     player.attack1 = True
                     player.run_right = False
                     player.run_left = False
+                if (event.button == pygame.BUTTON_LEFT and
+                        20 <= mouse_x <= 60 <= mouse_y <= 120):
+                    turret.selected = True
+                if turret.selected and 320 <= mouse_x <= 940 and 290 <= mouse_y <= 790:
+                    new_turret = Turret(5, mouse_x, mouse_y)
+                    turrets.append(new_turret)
+                    turret.selected = False
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 pause = True
                 manager = manager5
@@ -432,7 +492,6 @@ def mainloop():
             #     camera.apply(sprite)
             timer += 1
             player.update()
-            all_sprites.update()
             screen.fill('black')
             for i in list_of_groups:
                 i.draw(screen)
@@ -459,6 +518,51 @@ def mainloop():
             if not player.run_left and not player.run_right and not player.attack1:
                 player.item.groups()[0].draw(screen)
             manager.draw_ui(screen)
+        player.moving()
+        player.attack(evt)
+        # camera.update(player)
+        # for sprite in all_sprites:
+        #     camera.apply(sprite)
+        timer += 1
+        player.update()
+        screen.fill('black')
+        for i in list_of_groups:
+            i.draw(screen)
+        if 1000 < timer < 1500:
+            all_sprites.update()
+            if timer % 100 == 0:
+                enemy = Enemy(2)
+                enemies.append(enemy)
+        for i in enemies:
+            i.move()
+            i.update()
+            crackling_group.draw(screen)
+            for t in turrets:
+                if ((t.rect.y + 7) // tile_height in range(i.get_top_pos()[1], i.get_bottom_pos()[1]) and
+                        timer % 30 == 0):
+                    bullet = Bullet(1, 3, t.rect.x, t.rect.y)
+                    bullets.append(bullet)
+            for j in bullets:
+                j.move()
+                j.update()
+                bullet_group.draw(screen)
+                if j.get_pos()[1] in range(i.get_top_pos()[1], i.get_bottom_pos()[1]):
+                    spr = pygame.sprite.spritecollide(j, crackling_group, False)
+                    if spr:
+                        for k in spr:
+                            k.damaged(j.damage)
+                            k.death()
+                            if not k.live:
+                                enemies.remove(k)
+                            bullets.remove(j)
+                            j.kill()
+        if timer > 1500:
+            timer = 0
+        objective_group.draw(screen)
+        player_group.draw(screen)
+        turret_group.draw(screen)
+        if not player.run_left and not player.run_right and not player.attack1:
+            player.item.groups()[0].draw(screen)
         statistics(timer)
         pygame.display.flip()
         clock.tick(FPS)
@@ -506,8 +610,11 @@ if __name__ == '__main__':
                                     sword = Sword(player.pos_x, player.pos_y)
                                     player.add_item(sword)
                                     pickaxe = Pickaxe(player.pos_x, player.pos_y)
+                                    turret = Turret(10, 11693, 11462)
                                     player.add_item(pickaxe)
                                     enemies = []
+                                    bullets = []
+                                    turrets = []
                                     manager = manager3
                                     start_screen(True)
                                 else:
