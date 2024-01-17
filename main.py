@@ -4,6 +4,8 @@ import sys
 import csv
 import sqlite3
 
+import pygame.mixer
+
 from UI import *
 from consts import *
 from groups import *
@@ -26,7 +28,7 @@ def load_image(name, colorkey=None):
 
 
 def start_screen(flag):
-    global manager
+    global manager, objective, game_map, resources, player, sword, pickaxe, enemies
     count = 0
     if flag:
         fon = pygame.transform.scale(load_image('developers.png'), (width, height))
@@ -40,7 +42,7 @@ def start_screen(flag):
                 if count < 1:
                     music_slider.set_current_value(con.cursor().execute("""SELECT music_volume FROM statistics 
                     WHERE user_id = (SELECT id FROM user WHERE nickname = ?)""", (nickname,)).fetchone()[0])
-                    pygame.mixer.music.load('ost.mp3')
+                    pygame.mixer.music.load('sounds/ost.mp3')
                     pygame.mixer.music.set_volume(music_slider.current_value)
                     pygame.mixer.music.play(-1)
                     pygame.display.flip()
@@ -60,6 +62,11 @@ def start_screen(flag):
                 if event.ui_element == exit_button:
                     terminate()
                 if event.ui_element == change_button:
+                    con.cursor().execute("""UPDATE statistics SET player_pos = '15, 15', wood = 0, stone = 0, 
+                    game_time = 0, music_volume = 0.2, hp = 20, damage = 1
+                    WHERE user_id = (SELECT id FROM user WHERE nickname = ?)""",
+                                         (nickname,))
+                    con.commit()
                     terminate()
             if event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
                 if event.ui_element == music_slider:
@@ -106,7 +113,7 @@ def statistics(timer):
     else:
         img = font.render(f'Время до следующей атаки: {attack_time}', True, 'black')
         screen.blit(img, (20, 20))
-    img = font.render(f'Кол-во ресурсов, камень - {resources.rock}, дерево - {resources.wood}', True, 'black')
+    img = font.render(f'Кол-во ресурсов, камень - {resources.stone}, дерево - {resources.wood}', True, 'black')
     screen.blit(img, (20, 50))
 
 
@@ -138,12 +145,15 @@ class Hero(pygame.sprite.Sprite):
         super().__init__(player_group, all_sprites)
         self.cur_frame = 0
         self.cur_frame1 = 0
-        self.damage = 1
+        self.damage, self.hp = con.cursor().execute("""SELECT damage, hp FROM statistics 
+        WHERE user_id = (SELECT id FROM user WHERE nickname = ?)""", (nickname,)).fetchone()
         self.image = pygame.image.load('stand/1.png').convert_alpha()
         self.rect = self.image.get_rect()
         self.pos_x, self.pos_y = pos_x, pos_y
         self.rect.x, self.rect.y = tile_width * pos_x, tile_height * pos_y
         self.inventory = []
+        self.hit_sound = pygame.mixer.Sound('sounds/hit.ogg')
+        self.hit_enemy_sound = pygame.mixer.Sound('sounds/hit_enemy.ogg')
         self.run_right = False
         self.run_left = False
         self.attack1 = False
@@ -154,17 +164,17 @@ class Hero(pygame.sprite.Sprite):
     def update(self):
         if not self.attack1:
             if self.run_right:
-                self.cur_frame += 0.15
+                self.cur_frame += 0.3
                 if self.cur_frame > 7:
                     self.cur_frame = 0
                 self.image = pygame.image.load(f'run_right/{self.frames[int(self.cur_frame)]}')
             elif self.run_left:
-                self.cur_frame += 0.15
+                self.cur_frame += 0.3
                 if self.cur_frame > 7:
                     self.cur_frame = 0
                 self.image = pygame.image.load(f'run_left/{self.frames[int(self.cur_frame)]}')
             else:
-                self.cur_frame += 0.15
+                self.cur_frame += 0.3
                 if self.cur_frame > 7:
                     self.cur_frame = 0
                 self.image = pygame.image.load(f'stand/{self.frames[int(self.cur_frame)]}')
@@ -207,8 +217,15 @@ class Hero(pygame.sprite.Sprite):
 
     def attack(self, evt):
         if self.attack1:
+            spr = pygame.sprite.spritecollide(self, crackling_group, False)
             if self.frames[int(self.cur_frame1) % 4] == '3.png':
                 self.hit = True
+                if spr:
+                    self.hit_enemy_sound.play(0)
+                    for i in spr:
+                        i.damaged(self.damage)
+                else:
+                    self.hit_sound.play(0)
             else:
                 self.hit = False
             if evt.pos[0] >= self.rect.x + self.rect.w / 2:
@@ -216,12 +233,7 @@ class Hero(pygame.sprite.Sprite):
             else:
                 img = pygame.image.load(f'attack/{self.frames[int(self.cur_frame1) % 4]}')
                 self.image = pygame.transform.flip(img, True, False)
-            self.cur_frame1 += 0.2
-            spr = pygame.sprite.spritecollide(self, crackling_group, False)
-            if self.hit:
-                if spr:
-                    for i in spr:
-                        i.damaged(self.damage)
+            self.cur_frame1 += 1
 
     def add_item(self, item):
         self.inventory.append(item)
@@ -246,10 +258,17 @@ class Enemy(pygame.sprite.Sprite):
         super().__init__(crackling_group, all_sprites)
         self.cur_frame = 0
         self.image = pygame.image.load('m_run/1.png')
+        self.crackling_spawn = pygame.mixer.Sound('sounds/crackling_spawn.ogg')
+        self.crackling_spawn.set_volume(0.2)
+        self.crackling_spawn.play(0)
+        self.crackling_death = pygame.mixer.Sound('sounds/crackling_death.ogg')
+        self.crackling_death.set_volume(0.2)
+        self.crackling_damage = pygame.mixer.Sound('sounds/crackling_damage.ogg')
+        self.crackling_damage.set_volume(0.2)
         self.rect = self.image.get_rect()
         self.rect.x = 1500
         self.rect.y = random.randint(375, 525)
-        self.hp = 10
+        self.hp = 3
         self.speed_x = speed
         self.speed_y = None
         self.live = True
@@ -265,7 +284,6 @@ class Enemy(pygame.sprite.Sprite):
             self.cur_frame = 0
         self.image = pygame.image.load(f'm_run/{self.frames[int(self.cur_frame)]}').convert_alpha()
         self.death()
-        self.attack()
 
     def move(self):
         if self.live:
@@ -283,14 +301,17 @@ class Enemy(pygame.sprite.Sprite):
                 self.rect.y -= self.speed_y
 
     def attack(self):
-        if self.rect.x <= 435:
+        if self.rect.x <= 429 and self.live:
             objective.damaged(self.damage)
 
     def death(self):
         if self.hp <= 0:
+            self.crackling_death.play(0)
+            self.live = False
             self.kill()
 
     def damaged(self, damage):
+        self.crackling_damage.play(0)
         self.hp -= damage
 
 
@@ -298,15 +319,17 @@ class Objective(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__(objective_group, all_sprites)
         self.image = load_image('image_2_3.png')
+        self.death_sound = pygame.mixer.Sound('sounds/clash-royale-king-cry.ogg')
+        self.death_sound.set_volume(0.2)
         self.rect = self.image.get_rect()
         self.count = 0
-        self.functions = [lambda x: x + 10, lambda x: x - 10]
+        self.functions = [lambda x: x + 1, lambda x: x - 1]
         self.rect.x, self.rect.y = 390, 450
         self.hp = 15
 
     def update(self):
-        self.functions[int(self.count) % 2](self.rect.y)
-        self.count += 0.2
+        self.rect.y = self.functions[int(self.count) % 2](self.rect.y)
+        self.count += 0.07
         self.death()
 
     def damaged(self, damage):
@@ -314,6 +337,7 @@ class Objective(pygame.sprite.Sprite):
 
     def death(self):
         if self.hp <= 0:
+            self.death_sound.play(0)
             self.kill()
 
 
@@ -343,8 +367,14 @@ class Pickaxe(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
         super().__init__(pickaxe_group, all_sprites)
         self.image = load_image('pickaxe.png')
+        self.functions = [lambda x: x + 4, lambda x: x - 4]
+        self.count = 0
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = tile_width * pos_x + 25, tile_height * pos_y + 20
+
+    def update(self):
+        self.rect.y = self.functions[int(self.count) % 2](self.rect.y)
+        self.count += 1
 
 
 class Sword(pygame.sprite.Sprite):
@@ -357,12 +387,12 @@ class Sword(pygame.sprite.Sprite):
 
 class Resources:
     def __init__(self):
-        self.rock = 0
-        self.wood = 0
+        self.stone, self.wood = con.cursor().execute("""SELECT stone, wood FROM statistics 
+        WHERE user_id = (SELECT id FROM user WHERE nickname = ?)""", (nickname,)).fetchone()
 
     def update(self, rock_mine, wood_mine):
         if rock_mine and not wood_mine:
-            self.rock += 1
+            self.stone += 1
         elif wood_mine and not rock_mine:
             self.wood += 1
 
@@ -370,6 +400,8 @@ class Resources:
 def mainloop():
     global manager
     timer = 0
+    count = 0
+    count1 = 0
     evt = None
     pause = False
     while True:
@@ -380,22 +412,24 @@ def mainloop():
             if event.type == pygame.KEYUP:
                 player.run_right = False
                 player.run_left = False
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_WHEELUP:
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_WHEELUP and not pause:
                 player.previous_item()
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_WHEELDOWN:
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_WHEELDOWN and not pause:
                 player.next_item()
             if event.type == pygame.MOUSEBUTTONUP and event.button == pygame.BUTTON_LEFT:
                 player.attack1 = False
                 player.hit = False
-            if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.type == pygame.MOUSEBUTTONDOWN and not pause:
                 if (event.button == pygame.BUTTON_LEFT and isinstance(player.item, Pickaxe) and
                         27 <= player.pos_x <= 31 and 7 <= player.pos_y <= 8 and
                         867 <= mouse_x <= 1055 and 209 <= mouse_y <= 317):
                     resources.update(rock_mine=True, wood_mine=False)
+                    pickaxe.update()
                 if (event.button == pygame.BUTTON_LEFT and isinstance(player.item, Pickaxe) and
                         30 <= player.pos_x <= 34 and player.pos_y == 17 and
                         1000 <= mouse_x <= 1113 and 643 <= mouse_y <= 758):
                     resources.update(rock_mine=False, wood_mine=True)
+                    pickaxe.update()
                 if (event.button == pygame.BUTTON_LEFT and
                         isinstance(player.item, Sword)):
                     evt = event
@@ -417,6 +451,12 @@ def mainloop():
                     con.commit()
                     manager = manager5
                 if event.ui_element == exit_button1:
+                    con.cursor().execute("""UPDATE statistics 
+                    SET player_pos = ?, wood = ?, stone = ?, hp = ?, damage = ? 
+                    WHERE user_id = (SELECT id FROM user WHERE nickname = ?)""",
+                                         (f'{player.pos_x}, {player.pos_y}', resources.wood, resources.stone,
+                                          player.hp, player.damage, nickname))
+                    con.commit()
                     manager = manager3
                     start_screen(False)
             if event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
@@ -426,13 +466,23 @@ def mainloop():
         manager.update(time_delta)
         if not pause:
             player.moving()
-            player.attack(evt)
+            if player.attack1:
+                if int(count) % 5 == 0:
+                    player.attack(evt)
+                    for i in enemies:
+                        i.attack()
+                count += 1
+            if int(count1) % 50 == 0:
+                for i in enemies:
+                    i.attack()
+            count1 += 1
             # camera.update(player)
             # for sprite in all_sprites:
             #     camera.apply(sprite)
             timer += 1
-            player.update()
-            all_sprites.update()
+            player_group.update()
+            crackling_group.update()
+            objective_group.update()
             screen.fill('black')
             for i in list_of_groups:
                 i.draw(screen)
@@ -453,7 +503,6 @@ def mainloop():
             screen.fill('black')
             for i in list_of_groups:
                 i.draw(screen)
-            crackling_group.draw(screen)
             objective_group.draw(screen)
             player_group.draw(screen)
             if not player.run_left and not player.run_right and not player.attack1:
@@ -465,6 +514,7 @@ def mainloop():
 
 
 if __name__ == '__main__':
+    pygame.mixer.pre_init(44100, -16, 1, 512)
     pygame.init()
     screen = pygame.display.set_mode(size)
     running = True
@@ -523,8 +573,8 @@ if __name__ == '__main__':
                                     con.cursor().execute("""INSERT INTO user (nickname) 
                                     VALUES (?)""", (nickname,))
                                     con.cursor().execute("""INSERT INTO statistics 
-                                    (user_id, player_pos, wood, stone, game_time, music_volume)
-                                    VALUES ((SELECT id FROM user WHERE nickname = ?), '15, 15', 0, 0, 0, 0.2)""",
+                                    (user_id, player_pos, wood, stone, game_time, music_volume, hp, damage)
+                                    VALUES ((SELECT id FROM user WHERE nickname = ?), '15, 15', 0, 0, 0, 0.2, 20, 1)""",
                                                          (nickname,))
                                     con.commit()
                                     objective = Objective()
