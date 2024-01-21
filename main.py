@@ -354,7 +354,6 @@ class Enemy(pygame.sprite.Sprite):
     def attack(self):
         if self.rect.x <= 435 and self.live:
             objective.damaged(self.damage)
-            print(objective.hp)
 
     def death(self):
         if self.hp <= 0:
