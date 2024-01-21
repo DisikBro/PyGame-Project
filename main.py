@@ -4,8 +4,6 @@ import sys
 import csv
 import sqlite3
 
-import pygame.mixer
-
 from UI import *
 from consts import *
 from groups import *
@@ -28,7 +26,7 @@ def load_image(name, colorkey=None):
 
 
 def start_screen(flag):
-    global manager, objective, game_map, resources, player, sword, pickaxe, enemies
+    global manager
     count = 0
     if flag:
         fon = pygame.transform.scale(load_image('developers.png'), (width, height))
@@ -115,6 +113,33 @@ def statistics(timer):
         screen.blit(img, (20, 20))
     img = font.render(f'Кол-во ресурсов, камень - {resources.stone}, дерево - {resources.wood}', True, 'black')
     screen.blit(img, (20, 50))
+
+
+def simulated_store():
+    font = pygame.font.Font("data/Minecraft Rus NEW.otf", 30)
+    button_font = pygame.font.Font("data/Minecraft Rus NEW.otf", 15)
+
+    text = button_font.render('Улучшения персонажа - 50 дерева и камня; турель - 80 дерева и камня',
+                       True, 'black')
+    screen.blit(text, (20, 114))
+
+    damage = font.render(f'Урон - {player.damage}', True, 'black')
+    damage2 = button_font.render('Улучшить', True, 'black')
+    screen.blit(damage, (1630, 24))
+    screen.blit(damage2, (1807, 30))
+    pygame.draw.rect(screen, 'black', (1800, 19, 100, 40), 3)
+
+    movement = font.render(f'Скорость передвижения - {player.speed_increase + 5}', True, 'black')
+    movement2 = button_font.render('Улучшить', True, 'black')
+    screen.blit(movement, (1255, 74))
+    screen.blit(movement2, (1807, 80))
+    pygame.draw.rect(screen, 'black', (1800, 69, 100, 40), 3)
+
+    tur = font.render(f'Турели - {turret.amount}', True, 'black')
+    tur2 = button_font.render('Купить', True, 'black')
+    screen.blit(tur, (1585, 124))
+    screen.blit(tur2, (1817, 130))
+    pygame.draw.rect(screen, 'black', (1800, 119, 100, 40), 3)
 
 
 def terminate():
