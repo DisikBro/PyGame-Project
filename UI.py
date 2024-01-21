@@ -58,3 +58,7 @@ settings_button1 = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((790, 
 exit_button1 = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((790, 430), (298, 30)),
                                             text='Сохранить и выйти',
                                             manager=manager5)
+manager6 = pygame_gui.UIManager(size, 'theme1.json')
+exit_button2 = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((885, 650), (150, 40)),
+                                            text='Выйти',
+                                            manager=manager6)

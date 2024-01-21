@@ -78,6 +78,34 @@ def start_screen(flag):
         clock.tick(FPS)
 
 
+def game_over():
+    global manager
+    manager = manager6
+    fon = pygame.transform.scale(load_image('game_over.png'), (width, height))
+    screen.blit(fon, (0, 0))
+    pygame.mixer.music.load('sounds/game_over.mp3')
+    pygame.mixer.music.set_volume(0.2)
+    pygame.mixer.music.play(-1)
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            if event.type == pygame_gui.UI_BUTTON_PRESSED:
+                if event.ui_element == exit_button2:
+                    con.cursor().execute("""UPDATE statistics SET player_pos = '15, 15', wood = 0, stone = 0, 
+                                        game_time = 0, music_volume = 0.2, hp = 20, damage = 1
+                                        WHERE user_id = (SELECT id FROM user WHERE nickname = ?)""",
+                                         (nickname,))
+                    con.commit()
+                    terminate()
+            manager.process_events(event)
+        manager.update(time_delta)
+        screen.blit(fon, (0, 0))
+        manager.draw_ui(screen)
+        pygame.display.flip()
+        clock.tick(FPS)
+
+
 def load_level(filename):
     filename = "map/" + filename
     with open(filename, encoding="utf8") as mapFile:
@@ -254,6 +282,7 @@ class Hero(pygame.sprite.Sprite):
                     self.hit_enemy_sound.play(0)
                     for i in spr:
                         i.damaged(self.damage)
+                        i.death()
                 else:
                     self.hit_sound.play(0)
             else:
@@ -313,8 +342,6 @@ class Enemy(pygame.sprite.Sprite):
         if self.cur_frame > 3:
             self.cur_frame = 0
         self.image = pygame.image.load(f'm_run/{self.frames[int(self.cur_frame)]}').convert_alpha()
-        self.death()
-        self.attack()
 
     def move(self):
         if self.live and self.rect.x >= 435:
@@ -325,8 +352,9 @@ class Enemy(pygame.sprite.Sprite):
                 self.rect.y += 1
 
     def attack(self):
-        if self.rect.x <= 429 and self.live:
+        if self.rect.x <= 435 and self.live:
             objective.damaged(self.damage)
+            print(objective.hp)
 
     def death(self):
         if self.hp <= 0:
@@ -553,6 +581,7 @@ def mainloop():
                     con.commit()
                     manager = manager3
                     start_screen(False)
+                    break
             if event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
                 if event.ui_element == music_slider:
                     pygame.mixer.music.set_volume(music_slider.current_value)
@@ -563,12 +592,13 @@ def mainloop():
             if player.attack1:
                 if int(count) % 5 == 0:
                     player.attack(evt)
-                    for i in enemies:
-                        i.attack()
                 count += 1
             if int(count1) % 50 == 0:
                 for i in enemies:
                     i.attack()
+                    if objective.hp <= 0:
+                        game_over()
+                        break
             count1 += 1
             # camera.update(player)
             # for sprite in all_sprites:
@@ -598,7 +628,6 @@ def mainloop():
                     j.update()
                     bullet_group.draw(screen)
                     if j.get_pos()[1] in range(i.get_top_pos()[1], i.get_bottom_pos()[1]):
-                        turret_group.update()
                         spr = pygame.sprite.spritecollide(j, crackling_group, False)
                         if spr:
                             for k in spr:
@@ -618,10 +647,6 @@ def mainloop():
             turret_group.draw(screen)
             if not player.run_left and not player.run_right and not player.attack1:
                 player.item.groups()[0].draw(screen)
-            statistics(timer)
-            simulated_store()
-            pygame.display.flip()
-            clock.tick(FPS)
         else:
             screen.fill('black')
             for i in list_of_groups:
@@ -632,6 +657,10 @@ def mainloop():
             if not player.run_left and not player.run_right and not player.attack1:
                 player.item.groups()[0].draw(screen)
             manager.draw_ui(screen)
+        statistics(timer)
+        simulated_store()
+        pygame.display.flip()
+        clock.tick(FPS)
 
 
 if __name__ == '__main__':
@@ -708,8 +737,11 @@ if __name__ == '__main__':
                                     sword = Sword(player.pos_x, player.pos_y)
                                     player.add_item(sword)
                                     pickaxe = Pickaxe(player.pos_x, player.pos_y)
+                                    turret = Turret(10, 11693, 11462)
                                     player.add_item(pickaxe)
                                     enemies = []
+                                    bullets = []
+                                    turrets = []
                                     manager = manager3
                                     start_screen(True)
             manager.process_events(event)
