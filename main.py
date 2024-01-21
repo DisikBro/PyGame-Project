@@ -106,13 +106,14 @@ def statistics(timer):
     attack_time = 10 - timer // 100
     font = pygame.font.Font("data/Minecraft Rus NEW.otf", 30)
     if 1000 < timer < 1500:
-        img = font.render(f'Внимание атака: {15 - timer // 100}', True, 'black')
-        screen.blit(img, (20, 20))
+        text = font.render(f'Внимание атака: {15 - timer // 100}', True, 'black')
+        screen.blit(text, (20, 24))
     else:
-        img = font.render(f'Время до следующей атаки: {attack_time}', True, 'black')
-        screen.blit(img, (20, 20))
-    img = font.render(f'Кол-во ресурсов, камень - {resources.stone}, дерево - {resources.wood}', True, 'black')
-    screen.blit(img, (20, 50))
+        text = font.render(f'Время до следующей атаки: {attack_time}', True, 'black')
+        screen.blit(text, (20, 24))
+
+    res = font.render(f'Кол-во ресурсов, камень - {resources.stone}, дерево - {resources.wood}', True, 'black')
+    screen.blit(res, (20, 74))
 
 
 def simulated_store():
@@ -172,6 +173,7 @@ class Hero(pygame.sprite.Sprite):
         self.cur_frame1 = 0
         self.damage, self.hp = con.cursor().execute("""SELECT damage, hp FROM statistics 
         WHERE user_id = (SELECT id FROM user WHERE nickname = ?)""", (nickname,)).fetchone()
+        self.speed_increase = 0
         self.image = pygame.image.load('stand/1.png').convert_alpha()
         self.rect = self.image.get_rect()
         self.pos_x, self.pos_y = pos_x, pos_y
@@ -208,11 +210,14 @@ class Hero(pygame.sprite.Sprite):
         if not self.attack1:
             x, y = 0, 0
             keys = pygame.key.get_pressed()
+            if keys[pygame.K_x]:
+                resources.wood += 50
+                resources.stone += 50
             if keys[pygame.K_a]:
-                x = -5
+                x = -5 - self.speed_increase
                 self.run_left = True
             if keys[pygame.K_d]:
-                x = 5
+                x = 5 + self.speed_increase
                 self.run_right = True
             if keys[pygame.K_w]:
                 if self.run_left:
@@ -221,7 +226,7 @@ class Hero(pygame.sprite.Sprite):
                     pass
                 else:
                     self.run_right = True
-                y = -5
+                y = -5 - self.speed_increase
             if keys[pygame.K_s]:
                 if self.run_left:
                     pass
@@ -229,7 +234,7 @@ class Hero(pygame.sprite.Sprite):
                     pass
                 else:
                     self.run_right = True
-                y = 5
+                y = 5 + self.speed_increase
             if game_map.check_tile((self.rect.bottomleft[0] + x) // tile_width,
                                    (self.rect.bottomleft[1] + y) // tile_height) and \
                     game_map.check_tile((self.rect.bottomright[0] + x) // tile_width,
@@ -309,21 +314,15 @@ class Enemy(pygame.sprite.Sprite):
             self.cur_frame = 0
         self.image = pygame.image.load(f'm_run/{self.frames[int(self.cur_frame)]}').convert_alpha()
         self.death()
+        self.attack()
 
     def move(self):
-        if self.live:
-            if self.rect.y == 480 and self.rect.x > 429:
-                self.rect.x -= self.speed_x
-            if self.rect.y > 480 and self.rect.x > 429:
-                distance = ((self.rect.x - 429) ** 2 + (self.rect.y - 480) ** 2) ** 0.5
-                self.speed_y = abs((self.rect.y - 480) / distance)
-                self.rect.x -= self.speed_x
-                self.rect.y -= self.speed_y
-            if self.rect.y < 480 and self.rect.x > 429:
-                distance = ((self.rect.x - 429) ** 2 + (480 - self.rect.y) ** 2) ** 0.5
-                self.speed_y = -abs((480 - self.rect.y) / distance)
-                self.rect.x -= self.speed_x
-                self.rect.y -= self.speed_y
+        if self.live and self.rect.x >= 435:
+            self.rect.x -= self.speed_x
+            if self.rect.y > 480 and self.rect.x < 847:
+                self.rect.y -= 1
+            elif self.rect.y < 480 and self.rect.x < 847:
+                self.rect.y += 1
 
     def attack(self):
         if self.rect.x <= 429 and self.live:
@@ -338,6 +337,12 @@ class Enemy(pygame.sprite.Sprite):
     def damaged(self, damage):
         self.crackling_damage.play(0)
         self.hp -= damage
+
+    def get_top_pos(self):
+        return self.rect.x // tile_width, self.rect.y // tile_height
+
+    def get_bottom_pos(self):
+        return self.rect.bottomleft[0] // tile_width, self.rect.bottomleft[1] // tile_height
 
 
 class Objective(pygame.sprite.Sprite):
@@ -422,6 +427,49 @@ class Resources:
             self.wood += 1
 
 
+class Turret(pygame.sprite.Sprite):
+    def __init__(self, hp, mouse_x, mouse_y):
+        super().__init__(all_sprites, turret_group)
+        self.cur_frame = 0
+        self.image = pygame.image.load('turret/1.png').convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = mouse_x - 26, mouse_y - 24
+        self.hp = hp
+        self.amount = 0
+        self.alive = True
+        self.frames = ['1.png', '2.png', '3.png', '1.png']
+
+    def update(self):
+        self.cur_frame += 0.11
+        if self.cur_frame > 3:
+            self.cur_frame = 0
+        self.image = pygame.image.load(f'turret/{self.frames[int(self.cur_frame)]}').convert_alpha()
+
+
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, damage, speed, x, y):
+        super().__init__(all_sprites, bullet_group)
+        self.cur_frame = 0
+        self.image = pygame.image.load('bullet/1.png').convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = x + 40, y + 7
+        self.speed = speed
+        self.damage = damage
+        self.frames = ['1.png', '2.png', '3.png', '4.png']
+
+    def update(self):
+        self.cur_frame += 0.10
+        if self.cur_frame > 4:
+            self.cur_frame = 0
+        self.image = pygame.image.load(f'bullet/{self.frames[int(self.cur_frame)]}').convert_alpha()
+
+    def move(self):
+        self.rect.x += self.speed
+
+    def get_pos(self):
+        return self.rect.x // tile_width, self.rect.y // tile_height
+
+
 def mainloop():
     global manager
     timer = 0
@@ -461,6 +509,27 @@ def mainloop():
                     player.attack1 = True
                     player.run_right = False
                     player.run_left = False
+                if (event.button == pygame.BUTTON_LEFT and
+                        20 <= mouse_x <= 60 <= mouse_y <= 120):
+                    turret.selected = True
+                if 1800 <= mouse_x <= 1900 and 119 <= mouse_y <= 159 and resources.wood >= 80 and resources.stone >= 80:
+                    resources.wood -= 80
+                    resources.stone -= 80
+                    turret.amount += 1
+                if 1800 <= mouse_x <= 1900 and 19 <= mouse_y <= 59 and resources.wood >= 50 and resources.stone >= 50:
+                    resources.wood -= 50
+                    resources.stone -= 50
+                    player.damage += 1
+                if 1800 <= mouse_x <= 1900 and 69 <= mouse_y <= 109 and resources.wood >= 50 and resources.stone >= 50:
+                    resources.wood -= 50
+                    resources.stone -= 50
+                    player.speed_increase += 1
+                if (event.button == pygame.BUTTON_RIGHT and turret.amount > 0
+                        and 322 <= mouse_x <= 835 and 288 <= mouse_y <= 792):
+                    turret.amount -= 1
+                    new_turret = Turret(5, mouse_x, mouse_y)
+                    turrets.append(new_turret)
+
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 pause = True
                 manager = manager5
@@ -517,25 +586,52 @@ def mainloop():
                     enemies.append(enemy)
             for i in enemies:
                 i.move()
+                i.update()
                 crackling_group.draw(screen)
+                for t in turrets:
+                    if ((t.rect.y + 7) // tile_height in range(i.get_top_pos()[1], i.get_bottom_pos()[1]) and
+                            timer % 30 == 0):
+                        bullet = Bullet(1, 3, t.rect.x, t.rect.y)
+                        bullets.append(bullet)
+                for j in bullets:
+                    j.move()
+                    j.update()
+                    bullet_group.draw(screen)
+                    if j.get_pos()[1] in range(i.get_top_pos()[1], i.get_bottom_pos()[1]):
+                        turret_group.update()
+                        spr = pygame.sprite.spritecollide(j, crackling_group, False)
+                        if spr:
+                            for k in spr:
+                                k.damaged(j.damage)
+                                k.death()
+                                if not k.live:
+                                    enemies.remove(k)
+                                bullets.remove(j)
+                                j.kill()
+                    if j.rect.x >= 1700:
+                        j.kill()
+                        bullets.remove(j)
             if timer > 1500:
                 timer = 0
             objective_group.draw(screen)
             player_group.draw(screen)
+            turret_group.draw(screen)
             if not player.run_left and not player.run_right and not player.attack1:
                 player.item.groups()[0].draw(screen)
+            statistics(timer)
+            simulated_store()
+            pygame.display.flip()
+            clock.tick(FPS)
         else:
             screen.fill('black')
             for i in list_of_groups:
                 i.draw(screen)
+            crackling_group.draw(screen)
             objective_group.draw(screen)
             player_group.draw(screen)
             if not player.run_left and not player.run_right and not player.attack1:
                 player.item.groups()[0].draw(screen)
             manager.draw_ui(screen)
-        statistics(timer)
-        pygame.display.flip()
-        clock.tick(FPS)
 
 
 if __name__ == '__main__':
@@ -581,8 +677,11 @@ if __name__ == '__main__':
                                     sword = Sword(player.pos_x, player.pos_y)
                                     player.add_item(sword)
                                     pickaxe = Pickaxe(player.pos_x, player.pos_y)
+                                    turret = Turret(10, 11693, 11462)
                                     player.add_item(pickaxe)
                                     enemies = []
+                                    bullets = []
+                                    turrets = []
                                     manager = manager3
                                     start_screen(True)
                                 else:
