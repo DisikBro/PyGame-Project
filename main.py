@@ -327,7 +327,7 @@ class Enemy(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = 1500
         self.rect.y = random.randint(375, 525)
-        self.hp = 3
+        self.hp = 10
         self.speed_x = speed
         self.speed_y = None
         self.live = True
@@ -641,6 +641,12 @@ def mainloop():
                         bullets.remove(j)
             if timer > 1500:
                 timer = 0
+            if not enemies:
+                for i in bullets:
+                    i.kill()
+                bullets.clear()
+
+
             objective_group.draw(screen)
             player_group.draw(screen)
             turret_group.draw(screen)
