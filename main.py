@@ -283,6 +283,8 @@ class Hero(pygame.sprite.Sprite):
                     for i in spr:
                         i.damaged(self.damage)
                         i.death()
+                        if not i.live:
+                            enemies.remove(i)
                 else:
                     self.hit_sound.play(0)
             else:
